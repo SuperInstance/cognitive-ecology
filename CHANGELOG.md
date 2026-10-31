@@ -1,58 +1,67 @@
 # Changelog
 
-All notable changes to this project are documented here. The build log
-(`docs/JOURNAL.md`) carries the narrative; this file carries the deltas.
+All notable changes to cognitive-ecology. Format follows
+keepachangelog.com; versioning is semantic-ish (pre-1.0: minor bumps for
+anything, patches for fixes).
 
-## v0.1.0 — 2026-10-31
+## [0.2.0] — 2026-10-31
 
-The first organism: the law, the body, the teachers, and the receipts.
+The kernel becomes a complete, documented, play-tested organism suite.
 
 ### Added
+- **Merged with the parallel v0.1 research line** (`src/ecology/`): kept
+  intact as provenance — its alternative WHY formalism, LLM teacher
+  layer (DeepInfra panel / MiniMax / TypeSafe Jev client / SQLite usage
+  ledger), research panel harness, 6 ADRs, tiny-MUD and week-in-a-box
+  examples, and `library/` panel-round receipts. Both test suites run
+  green together (121 = 40 + 81). New work targets `cognitive_ecology`.
+- **Complete L0–L8 kernel** (`src/cognitive_ecology/`): runtime, events,
+  world graph, memory, script ecology, attention market, executive, WHY
+  conservation tree, identity, sleep, tensions, simulations — zero
+  runtime dependencies, zero LLM required.
+- **`agents/` subpackage**: OpenAI-compatible providers (DeepInfra /
+  `tencent/Hy4-preview` default; typesafe.ai-style decision endpoints
+  via env), deterministic MockProvider, `StablePrefixSession` with
+  token/cache journaling and savings estimates; `LLMAgent` orchestrator
+  with a safe, audited action library (observe/note/search/message/rest)
+  and a tiny `when_hint` trigger DSL.
+- **The veto law**: zero-attention bids never clear — not even in an
+  empty market. (Found by play-testing; pinned by test.)
+- **Proposer staleness**: LLM agents' propose bids include a boredom
+  term, after dogfooding showed successful spawned scripts starve their
+  own proposer. (Found by dogfooding.)
+- **One-shot search semantics**: re-charting a charted topic fails
+  honestly, so no-op scripts cannot clog the market.
+- **Deterministic dream naming**: generation-counted unique names for
+  mutated scripts (collision bug found by test).
+- **`experiments/minimal_world.py`**: the ten-minute organism — life,
+  crisis (kill the root), resurrection, sleep, save/load persistence.
+- **Five runnable examples** across domains (heartbeat, research
+  assistant, decision desk, game NPC, personal journal), all keyless.
+- **Templates**: fill-in agent template + play-test scenario template
+  with eight seeded scenarios from dogfooded ideation.
+- **Docs suite**: 8 guides + 4 hands-on tutorials, including caching
+  economics and the decision-model synergy plan.
+- **Tooling**: `scripts/run_rounds.py` (JSONL telemetry),
+  `scripts/ideate.py` (dogfood ideation loop), `Makefile`, CI (test
+  matrix 3.10–3.12 + secret scan), `bootstrap.sh` (PAT via env, askpass
+  shim — credentials never touch disk).
+- **Dogfood artifacts** (`experiments/dogfood/`): real model outputs +
+  token/cache journals from the 2026-10-31 Hy4-preview session that
+  seeded the scenario catalog and the misconception fixes.
 
-- **WHY kernel** (`ecology.why`): faithful Python port of why-core v0.2 —
-  two-file format (graph.txt/att.txt with `all-of:`, `until=`, `review-by=`,
-  `# discovered:`), six-pass evaluation (explicit-only liveness, full-depth
-  deadness, candidate namespace for inferred edges, conjunctive
-  short-circuit, mortality), reverse dominators, derivation chains. Pinned
-  to the 15-pair golden corpus shared with the Rust reference; `ecology
-  check` is CLI-compatible (same statuses, same exit codes).
-- **Ecology layers**: L0 runtime (processes, bids, ticks, starvation-not-death),
-  L1 event fabric, L2 world state graph (SQLite, memory maturity ladder),
-  L3 budgeted simulations, L4 script ecology (candidate→active→retired by
-  learned utility), attention economy (manifesto formula; market/central/
-  hybrid policies with governance rollover), tension field (pressure
-  compounds with age), mechanical sleep (observations→episodes→patterns→
-  replay-validated routines; zero LLMs), identity as a stable attractor,
-  morning briefing.
-- **WHY as the scheduler**: `JustificationWatch` multiplies every bid by
-  its justification weight (alive 1.0 / questionable 0.25 / dead 0.0) and
-  emits `justification.broken` when chains die. Open Question #5, answered
-  in code.
-- **The experiment**: `ecology week` — the smallest persistent world that
-  improves itself unattended (seed 42: 4 routines compiled, 332
-  observations handled, 5 scripts self-retired, day-4 root-kill broke 8
-  justifications without deleting anything, 10.88 learned utility, zero
-  LLM calls).
-- **LLM teacher layer**: cache-first prompt protocol, DeepInfra client
-  (7 panel models, `prompt_cache_key`, cached-token accounting,
-  provider-reported costs), TypeSafe Jev decision client (noul/choice/score),
-  retry/backoff honoring Retry-After, token bucket, circuit breaker, SQLite
-  usage ledger (`ecology usage`).
-- **Research panel**: 7 model lineages in role seats (ideator seat vacant —
-  MiniMax key rejected), append-only transcripts, Jev decision gates
-  between rounds, receipts in `library/rounds/`. Three live rounds shipped
-  (~$0.116 total spend).
-- **Knowledge library**: original manifesto, audit copy, provider research,
-  open-questions ledger (10/10 probed), crown-question reflection.
-- **Docs**: architecture map, journal, process manual, 6 ADRs with reversal
-  conditions, provider observations (including the MiniMax outage).
-- **CI**: lint + tests (Python 3.10/3.12) + secrets scan on every push.
+### Changed
+- World graph digest format now `id (kind) w=…` for readability.
 
-### Known issues
+### Fixed
+- Zero-attention market clearing (see veto law, above).
+- Dream name collisions.
+- Diary/telemetry printed post-run state instead of per-tick state
+  (`TickReport.tensions` added).
 
-- MiniMax authentication rejected on all endpoints (key issue, not client) —
-  ideator seat vacant until rotated.
-- Sleep's replay validation conflates frequency with value (round-002
-  panel finding); utility-from-consequence is the queued fix.
-- Sleep-born routines carry no WHY edges yet (open question #11 in the
-  ledger).
+## [0.1.0] — 2026-10-30
+
+Initial design: layer architecture (L0–L8), WHY conservation law,
+attention economics formula, anti-RAG world graph concept, script
+ecology concept, security posture for keys. Kernel modules
+`why/runtime/events/graph/attention/scripts` drafted.

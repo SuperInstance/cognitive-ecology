@@ -1,0 +1,4 @@
+{"ts": "2026-10-31T07:45:41", "model": "tencent/Hy4-preview", "system_sha": "252a48de4811", "user_sha": "532874e8a9e2", "prompt_tokens": 627, "completion_tokens": 3500, "cached_tokens": 0, "latency_s": 48.54}
+{"ts": "2026-10-31T07:46:35", "model": "tencent/Hy4-preview", "system_sha": "252a48de4811", "user_sha": "4159c26f6d83", "prompt_tokens": 678, "completion_tokens": 2800, "cached_tokens": 256, "latency_s": 54.21}
+{"ts": "2026-10-31T07:53:30", "model": "tencent/Hy4-preview", "system_sha": "252a48de4811", "user_sha": "af94d905b4be", "prompt_tokens": 598, "completion_tokens": 2189, "cached_tokens": 256, "latency_s": 172.71}
+{"ts": "2026-10-31T08:21:05", "model": "tencent/Hy4-preview", "system_sha": "252a48de4811", "user_sha": "f1e102cdf1c1", "prompt_tokens": 1553, "completion_tokens": 2600, "cached_tokens": 0, "latency_s": 27.81}

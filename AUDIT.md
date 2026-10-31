@@ -1,0 +1,73 @@
+# AUDIT
+
+Two sections: the **build self-audit** (what v0.2.0 claims, and the test
+or run that backs each claim), and an **external audit** section kept
+ready for a reviewer.
+
+## Build self-audit — v0.2.0 (2026-10-31)
+
+Every load-bearing claim in the docs, with its evidence:
+
+| # | Claim | Evidence | Status |
+|---|---|---|---|
+| 1 | WHY nodes are never deleted; conservation invariant holds under arbitrary operations | `tests/test_why.py::test_conservation_survives_random_storm` (500 random ops, 31 nodes) + runtime audit every 25 ticks | ✅ tested |
+| 2 | Kill cascades descendants to UNKNOWN (questionable), not deletion; revival cascades back | `test_kill_cascades_to_unknown_never_deletion`, `test_revive_after_ancestor_resurrect` | ✅ tested |
+| 3 | Resurrection requires substantive evidence | `test_resurrect_requires_a_reason` | ✅ tested |
+| 4 | Contradictions (ALIVE over DEAD) are representable and detectable | `test_contradictions_detectable` | ✅ tested |
+| 5 | Events are immutable, append-only, causally chained, ~MIDI-sized | `tests/test_events.py` (frozen dataclass, jsonl round-trip, `<160 bytes` budget test) | ✅ tested |
+| 6 | World graph is append/decay-only; deletion API raises by design | `tests/test_graph.py::test_forget_raises_by_design`, `test_decay_never_deletes` | ✅ tested |
+| 7 | Graph digest is deterministic (cache-safe) | `test_digest_is_deterministic` | ✅ tested |
+| 8 | Memory consolidates events → graph structure (co-occurrence, actors, tensions); replay boosts | `test_memory_consolidation_builds_structure` | ✅ tested |
+| 9 | Attention is the product of five clamped factors; any zero vetoes | `tests/test_attention.py::test_any_zero_factor_vetoes` | ✅ tested |
+| 10 | Vetoed bids never clear, even in an empty market | `test_vetoed_bids_never_clear_even_in_an_empty_market` (added after play-testing found the bug) | ✅ tested |
+| 11 | Market clearing is deterministic (tie-breaks by src, label) | `test_market_clears_top_k_and_counts_starvation` | ✅ tested |
+| 12 | Executive resolves resource conflicts (yield) and cause-chains decisions | `test_executive_resolves_resource_conflicts` | ✅ tested |
+| 13 | Script fire updates EMA; crashes never propagate | `tests/test_scripts.py` | ✅ tested |
+| 14 | Starving never-fired scripts die into a permanent necrology (DEATH event) | `test_starving_never_fired_script_dies_into_necrology` | ✅ tested |
+| 15 | Dreams mutate parameters with unique lineage names | `test_mutate_jitters_params_and_lineage` (collision fix verified) | ✅ tested |
+| 16 | Save/load round-trips state; adopt() restores track records | `tests/test_integration.py::test_save_load_round_trip` | ✅ tested |
+| 17 | Killing the root stops all action; resurrection resumes it; nothing is lost | `test_killing_the_root_stops_but_preserves_everything` | ✅ tested |
+| 18 | Idle organisms sleep; dreams spawn; pruning kills | `test_sleep_on_idle_with_dreams_and_pruning` | ✅ tested |
+| 19 | An LLM citizen (mock) proposes → scripts spawn → they fire; cache session measures hits | `test_llm_citizen_with_mock_provider_and_cache_session` | ✅ tested |
+| 20 | Identity commitments are hash-chained; tampering breaks verify(); introspect is stable within a session | `test_identity_chain_and_stable_introspect` | ✅ tested |
+| 21 | Registration without a WHY node is a hard error | `test_registering_without_why_is_an_error` | ✅ tested |
+| 22 | The ten-minute tour runs end-to-end, story intact | `python experiments/minimal_world.py` (run in CI via `make world`) | ✅ verified in build |
+| 23 | All five examples run keyless | `examples/*/main.py` (all executed during the 2026-10-31 build) | ✅ verified in build |
+| 24 | No secrets in the tree | CI secret-scan step + `make guard` | ✅ wired (see note) |
+| 25 | DeepInfra/Hy4 pricing + caching claims ($0.834 / $0.042 / $2.501 per 1M) | checked against deepinfra.com model page on 2026-10-31; dogfood journal shows real `cached_tokens` | ✅ verified live (re-check before big spend) |
+
+**Test count:** 121 as of v0.2.0 — **40 from the v0.2 kernel**
+(`src/cognitive_ecology/`, the subject of this audit) **+ 81 from the
+preserved v0.1 research line** (`src/ecology/`, alternative WHY
+formalism + LLM teacher layer; see README "Two development lines").
+Both suites run green together on the merged tree; `make test` runs
+them in ~3s.
+
+### Known limitations (honest list)
+
+- **Single-process.** No async tick sources, no wall-clock integration;
+  ticks are counted, not scheduled.
+- **WHY is a tree, not a DAG.** Shared purpose (multi-parent) is
+  deferred by design; see OPEN_QUESTIONS.md #1.
+- **Script mutation is parameter-only.** Behavior-level novelty comes
+  only from LLM proposals within the action library.
+- **Memory consolidation is heuristic.** No abstraction/schema formation
+  yet; co-occurrence and recency only.
+- **Typesafe/decision-model client is EXPERIMENTAL.** Protocol is stable;
+  the HTTP client's request shape must be checked against your
+  provider's current schema (docs/08).
+- **Archival policy for ancient DEAD nodes** does not exist; nothing is
+  ever moved to cold storage (see OPEN_QUESTIONS.md #6).
+- **The `runs/` telemetry directory** is gitignored output, not state
+  management; long-lived organisms need a real storage story.
+
+## External audit
+
+*(Reserved for an independent reviewer. Suggested protocol: run
+`pip install -e ".[dev]" && make test && make world`, then review
+against docs/02_architecture.md claims and the table above. Findings,
+with file/line references, below.)*
+
+| Date | Reviewer | Scope | Findings |
+|---|---|---|---|
+| — | — | — | awaiting |
