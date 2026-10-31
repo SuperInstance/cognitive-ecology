@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognitive-ecology"
-version = "0.3.0"
+version = "0.4.0"
 description = "A zero-dependency Python kernel for agents that persist like organisms: conserved WHY, attention economics, an anti-RAG world graph, and a script ecology."
 readme = "README.md"
 requires-python = ">=3.10"

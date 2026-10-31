@@ -543,3 +543,59 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   receipt tampering caught, persistence, effective-sole under
   compaction, cross-organism derivability under compaction, bounded
   verify cost); OQ #13 CLOSED; the 3000-tick soak holds.
+
+### Round 16 — the society soak, the bug it caught, and v0.4.0
+
+- **The society soak** runs three organisms in lockstep — a researcher
+  leaning on two archives — through the whole delegation life cycle:
+  service on A's own books, hard propagation when B's provider purpose
+  is killed (treaty broken, A's purpose questioned with a receipt),
+  revival, re-delegation to C, service through the end. Per-epoch
+  journal compaction on all three books; federation + conservation
+  audits every epoch. Receipts: 1,398 ticks/s lockstep, journals
+  bounded at 9/4/4 entries across epochs, 48 audits green,
+  save/load with the embedded receipt.
+- **The soak caught a real integration bug on its first full run**:
+  journal compaction (round 15) shrank a provider's journal past the
+  exchange's positional cursor — every slice came back EMPTY until the
+  journal regrew past the cursor. A ~500-tick silent service gap; the
+  beneficiary starved and lapsed at tick 925, before the provider was
+  even killed at 2000. The receipts told the story (treaty:1 "broken:
+  beneficiary purpose unknown (lapsed)" at 925) — the ledger found the
+  bug before we did.
+- **The fix is two-part**: monotonic heartbeats (a stamp carrying a
+  tick older than the node's current last_beat is a no-op — stale
+  information must never rewind freshness, which makes re-consumption
+  idempotent) and epoch-aware cursor resync (cursors track each
+  member's compaction count and the last consumed entry; on mismatch
+  they relocate that entry in the compacted journal, or re-consume the
+  tiny journal from the start). After the fix, the soak tells the
+  designed story exactly.
+- **v0.4.0 released**: society-basis federation (ADR-0011), the WHY
+  DAG (ADR-0012), the outcome-arbiter (ADR-0013), journal compaction
+  (ADR-0014); versions bumped; README refreshed (240 tests, L9 in the
+  stack, the v0.4 status paragraph); society soak smoke pinned in CI.
+
+## 2026-11-01 — session four: running totals
+
+- **v0.4.0 shipped**: four major mechanics in one session —
+  society-basis federation, the WHY DAG, the outcome-arbiter, journal
+  compaction — plus the red-team hardening (sole-ness as fact, doubter
+  provenance, the live endpoint sweep) and the three-phase replay
+  ordering found by the example-08 play-test.
+- **Tests**: 179 → 240 (61 new, every one pinning a semantic found by
+  design, play-testing, a live red team, or a soak).
+- **Live calls this session**: round 011 (Hy4 red team, 4 iterations,
+  $0.0086, 47% cache hit) + round 014 (jev outcome-arbiter, 25 gated
+  decisions). Session spend: ~$0.02.
+- **Bugs found by our own instruments**: the cursor bug (routing died
+  at the first compaction — found by the society soak), the
+  same-tick-replay ordering (found by example 08), the one-exchange
+  dead-endpoint window (found by the federation auditor in a test).
+  The thesis keeps working: receipts find what reviews miss.
+- **Ledger movement**: OPEN_QUESTIONS closed #1 (WHY-DAG), #3
+  (decision-model boundary, fully), and #13 (journal compaction);
+  advanced #5 (multi-organism societies); opened #14 (the WHY mutation
+  surface). The v0.5 frontier: cross-organism attention markets,
+  society replay equivalence, arbiter re-promotion, weighted DAG
+  parents — and whatever the next play-test finds.

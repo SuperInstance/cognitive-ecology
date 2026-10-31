@@ -7,7 +7,7 @@ not kings.
 
 ```
 Python >= 3.10  ·  zero runtime dependencies  ·  zero LLM required to run
-179 tests       ·  deterministic (seeded)     ·  MIT license
+240 tests       ·  deterministic (seeded)     ·  MIT license
 ```
 
 ---
@@ -47,14 +47,22 @@ A small kernel (one package, stdlib only) that treats an agent as an
   opportunity × novelty × expected_value`, multiplicative, where any
   zero factor vetoes;
 - a **conserved purpose** (L6 WHY): four states — alive, dead, unknown,
-  absent — never deleted, always auditable, revivable; liveness is a
-  *subscription* (serve it or lapse), and the conservation law is
-  *proof-carrying* (the replay basis reconstructs the living tree, and
-  every tamper vector is caught);
+  absent — never deleted, always auditable, revivable; purposes may
+  have **several parents** (the WHY DAG, best-path semantics);
+  liveness is a *subscription* (serve it or lapse), and the
+  conservation law is *proof-carrying* (the replay basis reconstructs
+  the living tree, every tamper vector is caught, and the journal
+  compacts under receipts without losing the replay);
 - an **identity** (L7): a slowly-drifting self-model with a hash-chained
   commitment ledger;
 - **sleep** (L8): replay, prune, dream — offline consolidation on
-  idleness.
+  idleness;
+- a **society** (L9, v0.4): treaties are foreign purpose references
+  that route attestation between organisms — a delegated purpose
+  stays fresh on the beneficiary's own books; provider death
+  propagates hard (questioned, with an exchange receipt), neglect
+  propagates soft (the beneficiary's own reaper); the federation
+  auditor detects forged service and missed propagations.
 
 LLMs and decision models join as **citizens**: they may propose
 parameterized behaviors from an audited action library; the WHY tree
@@ -64,6 +72,8 @@ decides what may exist, and the attention market decides what runs.
 
 ```
             ┌────────────────────────────────────────────┐
+   L9       │  Society — treaties + the exchange          │   society.py
+            │  + the federation auditor (v0.4)            │
    L8       │  Sleep & Dreams — replay, prune, mutate     │   sleep.py
             ├────────────────────────────────────────────┤
    L7       │  Identity — the slowly-drifting self        │   identity.py
@@ -295,6 +305,18 @@ from the v0.1 line). New work should target `cognitive_ecology`; the
 v0.1 line is preserved as research history.
 
 ## Status & roadmap
+
+v0.4.0 — purpose that crosses organisms: **society-basis federation**
+(treaties route attestation; death propagates hard with exchange
+receipts, neglect propagates soft; a federation auditor that catches
+forged service and missed propagations), the **WHY DAG**
+(multi-parent purposes, best-path semantics, path-survivor cascades),
+the **outcome-arbiter** (delegated tie-breaking scored by realized
+outcomes — miscalibrated or value-destroying judgment is benched with
+a receipt), and **journal compaction** (the replay basis without the
+ballast — flat verify cost at any horizon, every compaction
+receipted and chain-covered). Soak-proven at 10,000 ticks; society
+soak at 6,000 ticks across three organisms; 240 tests.
 
 v0.3.0 — the economics of persistence: liveness as a subscription
 (re-attestation, lapse, parole on revival), conservation as a receipt
