@@ -43,7 +43,7 @@ from .attention import AttentionBid, AttentionMarket
 from .audit import ConservationAuditor
 from .calibration import CalibrationLog
 from .events import Event, EventBus, EventKind
-from .executive import Executive
+from .executive import ArbiterContext, Executive
 from .graph import WorldGraph
 from .identity import Identity
 from .memory import Memory
@@ -271,6 +271,15 @@ class Runtime:
                     t, d.bid.src, d.bid.label, d.bid.success_p,
                     1.0 if out.ok else 0.0,
                 )
+            # the delegated tie-break gets scored by realized outcomes
+            # (ADR-0013): the arbiter's pick that acted is a claim
+            sc = self.executive.scorecard
+            ac = self.executive.last_arbiter_context
+            if sc is not None and ac is not None and ac.tick == t:
+                sc.note_action_outcome(out.ok)  # base rate on arbiter ticks
+                if d.bid.label == ac.pick:
+                    sc.record_outcome(
+                        t, ac.pick, ac.confidence, out.ok, ac.divergent)
             self.bus.emit(
                 EventKind.NOTE_ON, (d.bid.label, 1 if out.ok else 0),
                 src=d.bid.src, ts=t, cause=d.event_seq,
@@ -370,6 +379,8 @@ class Runtime:
             "identity": self.identity.to_dict() if self.identity else None,
             "market": self.market.stats(),
             "calibration": self.calibration.to_json(),
+            "arbiter_scorecard": self.executive.scorecard.to_json()
+            if self.executive.scorecard is not None else None,
         }
         with open(os.path.join(path, "state.json"), "w", encoding="utf-8") as f:
             json.dump(state, f, indent=1, sort_keys=True)
@@ -408,6 +419,12 @@ class Runtime:
         )
         if state.get("identity"):
             rt.identity = Identity.from_dict(state["identity"])
+        if state.get("arbiter_scorecard"):
+            # the scorecard persists; the arbiter callable itself is code
+            # (attach it in your `attach` callback, like any component)
+            from .scorecard import ArbiterScorecard
+            rt.executive.scorecard = ArbiterScorecard.from_json(
+                state["arbiter_scorecard"])
         rt.bus = EventBus.from_jsonl(events_text)
         attach(rt)
         return rt

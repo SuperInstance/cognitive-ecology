@@ -31,6 +31,7 @@ from .simulations import Forecast, Simulator
 from .identity import Commitment, Identity
 from .sleep import SleepCycle, SleepStats
 from .runtime import Component, Runtime, TickReport, WorldSnapshot
+from .scorecard import ArbiterScorecard, BenchEvent
 from .society import (
     BROKEN, REVOKED, ACTIVE, ExchangeRecord, FederationAuditor,
     FederationReceipt, Society, Treaty,
@@ -50,4 +51,5 @@ __all__ = [
     "WorldSnapshot",
     "ACTIVE", "BROKEN", "REVOKED", "ExchangeRecord", "FederationAuditor",
     "FederationReceipt", "Society", "Treaty",
+    "ArbiterScorecard", "BenchEvent", "ArbiterContext",
 ]

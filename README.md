@@ -198,7 +198,7 @@ discipline and journals the results).
 | [docs/06_agents_and_providers.md](docs/06_agents_and_providers.md) | LLMs as citizens + caching economics |
 | [docs/07_playbook.md](docs/07_playbook.md) | how to play-test (and what play-testing found) |
 | [docs/08_decision_models.md](docs/08_decision_models.md) | typed-decision synergy + experiment plan |
-| [docs/ADRs/](docs/ADRs/) | 12 architecture decision records (the law, the economics, the proofs, the society, the DAG) |
+| [docs/ADRs/](docs/ADRs/) | 13 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment) |
 | [docs/tutorials/](docs/tutorials/) | four hands-on tutorials (first world → LLM agents) |
 
 ## FAQ (read this if you read nothing else)
@@ -319,9 +319,13 @@ The v0.4 frontier (from live ideation round 009, see
    fixpoint (no over-cascade, no under-cascade); stamping serves the
    whole DAG lineage; the auditor replays DAG bases and catches
    off-books re-parenting; trees keep bit-for-bit v0.2 semantics.
-3. **OUTCOME-ARBITER** — score the delegated tie-break by realized
-   outcomes, not just divergence counts; paid judgment must earn its
-   keep.
+3. **OUTCOME-ARBITER** — **SHIPPED (ADR-0013):** the delegated
+   tie-break is scored by realized outcomes — the arbiter's picks are
+   probabilistic claims in the calibration immune system, overrides
+   are compared against the action base rate, and a miscalibrated or
+   value-destroying arbiter is benched to the deterministic shadow
+   with a receipt (live round 014: jev benched at tick 25 on Brier
+   0.307 while its overrides were value-positive).
 4. **Journal compaction** — per-epoch rolling digests for the growing
    attestation journal (OPEN_QUESTIONS #13).
 

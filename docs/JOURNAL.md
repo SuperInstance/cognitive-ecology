@@ -487,3 +487,34 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   wrong order for a single pass.
 - 220 tests green (17 new); ADR-0012 written; OQ #1 CLOSED with an
   implementation, not an opinion.
+
+### Round 14 — the outcome-arbiter: paid judgment must earn its keep (ADR-0013)
+
+- **Divergence is not value.** ADR-0009 counted how often the arbiter
+  disagreed with the deterministic shadow; round 005 measured 50/50
+  and could not say whether that was worth anything. The scorecard
+  (kernel, zero-dep) closes OQ #3's remainder with three scores where
+  there was one: the arbiter's picks are probabilistic claims in the
+  SAME calibration immune system as component claims; its overrides
+  are compared against the action base rate; and either a
+  miscalibrated or value-destroying arbiter is BENCHED after a
+  window — never consulted again, announced once as a DECISION event,
+  receipt naming the numbers.
+- **The live run is the best receipt yet**: jev arbitrated a
+  4-contender organism for 60 ticks under the scorecard. 25 calls, 25
+  divergences, 0 errors. The VALUE test did not fire — overrides
+  succeeded at 0.72 vs the 0.66 base rate; the judgment was slightly
+  better than the shadow's ordering. The CALIBRATION test benched it
+  at tick 25 (Brier 0.307): jev chose decently but could not price
+  its own choices. Three different scores, three different stories —
+  divergence count alone would have called the run a disaster and
+  been wrong about why.
+- The wiring is minimal: the executive exposes
+  last_arbiter_context, the runtime scores the pick that acts,
+  scorecard=None keeps exact v0.3 behavior (keyless default
+  preserved), and the scorecard persists with the organism while the
+  arbiter callable stays code.
+- 228 tests green (8 new: confident-and-wrong benched, calibrated
+  keeps its job, value-destroying benched, benching degrades to the
+  shadow with exactly one announcement, window prevents snap
+  judgments, persistence roundtrip, veto-guard survives the wiring).

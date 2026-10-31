@@ -19,12 +19,16 @@ kernel, ordered roughly by how soon it blocks somebody.
    smarter estimator must stay cheap enough for per-tick use and
    deterministic enough for reproducibility.
 
-3. **Decision-model integration boundary.** **Advanced (v0.3,
-   ADR-0009):** they enter at exactly one bounded hook — the executive's
-   tie-break among live contenders (veto-guarded, fail-safe, divergence
-   counted) — plus the calibration log that scores probabilistic claims.
-   Open remainder: score the arbiter by realized OUTCOMES, not just
-   divergence (the v0.4 OUTCOME-ARBITER direction).
+3. ~~**Decision-model integration boundary.**~~ **CLOSED (v0.3
+   ADR-0009 + v0.4 ADR-0013):** they enter at exactly one bounded hook
+   — the executive's tie-break among live contenders (veto-guarded,
+   fail-safe) — and the delegation is scored by realized OUTCOMES: the
+   arbiter's picks are probabilistic claims in the calibration immune
+   system, its overrides are compared against the action base rate,
+   and a miscalibrated or value-destroying arbiter is benched back to
+   the deterministic shadow with a receipt. Live round 014 (jev, 60
+   ticks): overrides value-positive (0.72 vs 0.66 base) but
+   confidence miscalibrated (Brier 0.307) — benched at tick 25.
 
 4. **Sleep scheduling.** Idleness-triggered sleep works for the demo
    worlds. Real organisms may want scheduled consolidation (nightly),
