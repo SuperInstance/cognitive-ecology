@@ -258,8 +258,9 @@ class Runtime:
             except Exception as exc:  # a crashing component must not kill the body
                 out = Outcome(False, f"component error: {exc.__class__.__name__}: {exc}")
             ran.append(d.bid.label)
-            # running under a purpose re-attests it — use it or lose it
-            self.why.stamp_chain(comp.why_node, t)
+            # running under a purpose re-attests it — use it or lose it —
+            # and the winner's identity becomes the attestation's provenance
+            self.why.stamp_chain(comp.why_node, t, by=comp.id)
             self.bus.emit(
                 EventKind.NOTE_ON, (d.bid.label, 1 if out.ok else 0),
                 src=d.bid.src, ts=t, cause=d.event_seq,

@@ -272,3 +272,88 @@ def test_revived_purpose_resumes_and_persistence_roundtrips():
         assert rt2.why.node("why:root").last_beat == rt.why.node("why:root").last_beat
         assert rt2.why.freshness("why:forage") == rt.why.freshness("why:forage")
         assert rt2.why.justification("why:forage") == rt.why.justification("why:forage")
+
+
+# ---------------------------------------------------------------------------
+# round 004 — the red-team holes and their fixes
+# ---------------------------------------------------------------------------
+
+def test_revive_is_parole_not_pardon():
+    """UNKNOWN-washing fix: a revived node bids at half strength until served."""
+    t = _tree(horizon=60)
+    # the washing attack: kill the middle node, resurrect it, ride the
+    # cascade — ending with an all-ALIVE tree that nobody ever served
+    t.kill("why:food", reason="washing attempt", tick=5)   # map -> UNKNOWN
+    t.resurrect("why:food", "washed evidence", tick=6)     # cascade -> map ALIVE
+    assert t.node("why:food").probation is True
+    assert t.node("why:map").probation is True
+    # fresh horizons but capped strength: parole, not pardon
+    assert abs(t.justification("why:map", tick=6) - 0.5) < 1e-9
+    # genuine service ends parole
+    t.stamp_chain("why:map", tick=10, by="worker")
+    assert t.node("why:food").probation is False
+    assert t.node("why:map").probation is False
+    assert t.justification("why:map", tick=10) == 1.0
+
+
+def test_resurrect_also_lands_on_parole():
+    t = _tree(horizon=60)
+    t.kill("why:root", reason="gone", tick=5)
+    t.resurrect("why:root", "new evidence arrived", tick=6)
+    assert t.node("why:root").probation is True
+    assert t.justification("why:food", tick=6) <= 0.5
+
+
+def test_cascade_revive_puts_descendants_on_parole():
+    t = _tree(horizon=60)
+    t.kill("why:root", reason="x", tick=5)
+    t.resurrect("why:root", "new evidence", tick=6)
+    assert t.node("why:root").probation is True
+    for nid in ("why:food", "why:map"):
+        assert t.node(nid).probation is True
+    # the whole washed lineage bids at half strength until someone serves it
+    assert t.justification("why:map", tick=6) <= 0.5
+
+
+def test_unknown_washing_never_beats_honest_service():
+    """The mass kill-and-revive cycle must stay weaker than serving."""
+    # zombie organism: declare, kill, resurrect — never serve
+    z = _tree(horizon=60)
+    z.kill("why:root", reason="wash", tick=5)
+    z.resurrect("why:root", "washed evidence", tick=6)
+    # honest organism: same shape, served every 10 ticks
+    h = _tree(horizon=60)
+    for tick in range(0, 200, 10):
+        h.stamp_chain("why:map", tick, by="worker")
+    zj = z.justification("why:map", tick=199)
+    hj = h.justification("why:map", tick=199)
+    assert zj <= 0.5 < 1.0 <= hj + 1e-9
+
+
+def test_stamp_records_provenance_and_it_persists():
+    import tempfile
+    rt = _worker_rt(horizon=100)
+    rt.run(10)
+    assert rt.why.node("why:root").last_attested_by == "worker"
+    assert rt.why.node("why:forage").last_attested_by == "worker"
+    with tempfile.TemporaryDirectory() as d:
+        rt.save(d)
+        rt2 = Runtime.load(d, attach=lambda r: r.register(
+            _Greedy("worker", "why:forage", "energy")))
+        assert rt2.why.node("why:root").last_attested_by == "worker"
+        assert rt2.why.node("why:forage").probation is False
+
+
+def test_piggybacking_sibling_does_not_get_stamped():
+    """Round-004 hole 1 rebuttal: stamps go leaf->root, never to siblings."""
+    t = _tree(horizon=60)
+    t.declare("parasite", parent="why:root", node_id="why:parasite", tick=0)
+    # the honest sibling serves ITS chain many times
+    for tick in range(0, 200, 10):
+        t.stamp_chain("why:map", tick, by="honest")
+    # the parasite never runs: its own last_beat is untouched
+    assert t.node("why:parasite").last_beat == 0
+    assert t.node("why:parasite").last_attested_by == ""
+    # so its chain freshness decays by its OWN staleness, not the root's
+    t.now = 200
+    assert t.freshness("why:parasite") < t.freshness("why:map")

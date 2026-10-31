@@ -173,3 +173,28 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   panel round 004 against the design, Hy4-preview with cache gaming;
   (4) pluggable attention arbitration with decision models; (5) honest
   archival; (6) examples 06–08; (7) the soak test; (8) v0.3.0.
+
+### Round 3 — the red team gets its turn (live, cache-gamed)
+
+- **Round 004 (live):** Hy4-preview attacked ADR-0007 for four iterations
+  ($0.009 total; cache hits 0 → 128 → 512 → 896 — the append-only
+  transcript is doing its job; 38% overall). Jev steered attack/attack/
+  attack with severity holding at 2.93 ("serious, not design-breaking").
+- **The triage:** hole 1 (ancestral piggybacking) was half-wrong —
+  stamps go leaf→root, so parasites never ride siblings — but earned
+  attestation **provenance** (`last_attested_by`); hole 2
+  (UNKNOWN-washing: mass kill-and-revive cheaper than honest service)
+  was real and is now fixed as **parole, not pardon** — revived nodes
+  cap at justification 0.5 until a genuine win re-attests them; holes
+  3–4 (UNKNOWN as bid veto; audits as scheduling primitive) were
+  rebutted with the actual math (proportional discount; continuous
+  freshness decay). All pinned by tests; the idle-revival receipt now
+  reads 0.500 where it read 1.000 — the fix is visible in the wild.
+- **Round 004b (live ideation, $0.0026):** Hy4 as research director
+  proposed the next rounds. Adopted: **necrology replay equivalence**
+  (replay the append-only log from genesis; reconstructed state must
+  equal the live digest — conservation becomes proof-carrying) and
+  **calibrated attention estimators** (lower-bound multiplication,
+  Brier-logged — merges into the decision-model round). Deferred: sleep
+  scheduler triggers (kept on the ledger).
+- 143 tests green. Commit: this one.

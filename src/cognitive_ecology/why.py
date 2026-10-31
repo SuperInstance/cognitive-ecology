@@ -70,6 +70,8 @@ class WhyNode:
     state: WhyState = WhyState.ABSENT
     born: int = 0
     last_beat: int = -1
+    last_attested_by: str = ""       # component whose winning act last stamped it
+    probation: bool = False           # revived but not yet re-served ( parole )
 
 
 @dataclass
@@ -196,7 +198,13 @@ class WhyTree:
         return node
 
     def revive(self, nid: str, reason: str = "rejustified", tick: int = 0) -> WhyNode:
-        """UNKNOWN -> ALIVE. Questionable purposes may be re-justified."""
+        """UNKNOWN -> ALIVE. Questionable purposes may be re-justified.
+
+        Revival is PAROLE, not pardon: the node lands on probation — its
+        justification is capped until a genuine winning act re-attests it
+        (round 004's UNKNOWN-washing fix: mass kill-and-revive must never
+        be cheaper than honest service).
+        """
         node = self._nodes[nid]
         if node.state is not WhyState.UNKNOWN:
             raise ValueError(
@@ -204,6 +212,7 @@ class WhyTree:
             )
         self._record(node, WhyState.ALIVE, reason, tick)
         node.last_beat = tick
+        node.probation = True
         self._cascade_revive(nid, tick)
         return node
 
@@ -218,6 +227,7 @@ class WhyTree:
             )
         self._record(node, WhyState.ALIVE, f"resurrected: {reason}", tick)
         node.last_beat = tick
+        node.probation = True  # evidence earns a hearing, not full strength
         self._cascade_revive(nid, tick)
         return node
 
@@ -230,6 +240,7 @@ class WhyTree:
                     dn, WhyState.ALIVE, f"cascade: ancestor {nid} revived", tick
                 )
                 dn.last_beat = tick
+                dn.probation = True  # cascaded revivals are on parole too
 
     def activate(self, nid: str, tick: int = 0) -> WhyNode:
         """ABSENT -> ALIVE: a draft/parked purpose starts asserting itself."""
@@ -250,23 +261,27 @@ class WhyTree:
         self._record(node, WhyState.ABSENT, "parked", tick)
         return node
 
-    def heartbeat(self, nid: str, tick: int = 0) -> bool:
+    def heartbeat(self, nid: str, tick: int = 0, by: str = "") -> bool:
         """Stamp liveness. Returns False if the node is not ALIVE."""
         node = self._nodes[nid]
         if node.state is WhyState.ALIVE:
             node.last_beat = tick
+            if by:
+                node.last_attested_by = by
+            node.probation = False  # genuine service ends parole
             return True
         return False
 
-    def stamp_chain(self, nid: str, tick: int) -> int:
+    def stamp_chain(self, nid: str, tick: int, by: str = "") -> int:
         """Re-attest a purpose by USE: stamp every ALIVE node leaf -> root.
 
         Serving a purpose maintains its whole lineage — a running child
-        keeps its root fresh. Returns how many nodes took the stamp.
+        keeps its root fresh — and ends any probation along the way.
+        Returns how many nodes took the stamp.
         """
         took = 0
         for n in self.chain(nid):
-            if self.heartbeat(n.id, tick):
+            if self.heartbeat(n.id, tick, by=by):
                 took += 1
         return took
 
@@ -312,6 +327,8 @@ class WhyTree:
                 worst = f
         return worst
 
+    PROBATION_CAP = 0.5  # a revived-but-unserved purpose bids at half strength
+
     def justification(self, nid: str, tick: Optional[int] = None) -> float:
         """How justifiable is this node's chain, 0..1.
 
@@ -319,8 +336,10 @@ class WhyTree:
         is broken. Otherwise the score is the fraction of the chain that is
         ALIVE (UNKNOWN ancestors discount proportionally), multiplied by
         the chain's weakest-link FRESHNESS when re-attestation economics
-        are on: liveness attested long ago is worth less than liveness
-        maintained. Stale purposes lose contention before they lapse.
+        are on, and capped at PROBATION_CAP while any chain node is on
+        parole (revived without service since). Liveness attested long ago
+        is worth less than liveness maintained; liveness *asserted* without
+        service is worth half.
         """
         if tick is not None:
             self.now = tick  # explicit tick advances the tree's clock
@@ -333,7 +352,10 @@ class WhyTree:
         base = alive / len(chain)
         if base <= 0.0:
             return 0.0
-        return base * self.freshness(nid)
+        score = base * self.freshness(nid)
+        if any(n.probation for n in chain if n.state is WhyState.ALIVE):
+            score = min(score, self.PROBATION_CAP)
+        return score
 
     def reap(self, tick: Optional[int] = None) -> list:
         """Lapse long-unattested ALIVE nodes to UNKNOWN (never deletion).
@@ -432,6 +454,7 @@ class WhyTree:
                 {
                     "id": n.id, "parent": n.parent, "statement": n.statement,
                     "state": n.state.value, "born": n.born, "last_beat": n.last_beat,
+                    "last_attested_by": n.last_attested_by, "probation": n.probation,
                 }
                 for n in self._nodes.values()
             ],
@@ -454,6 +477,8 @@ class WhyTree:
             node = WhyNode(
                 id=nd["id"], parent=nd["parent"], statement=nd["statement"],
                 state=WhyState(nd["state"]), born=nd["born"], last_beat=nd["last_beat"],
+                last_attested_by=nd.get("last_attested_by", ""),
+                probation=nd.get("probation", False),
             )
             tree._nodes[node.id] = node
             if node.parent is not None:

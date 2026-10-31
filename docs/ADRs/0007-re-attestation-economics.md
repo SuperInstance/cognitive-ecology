@@ -71,3 +71,33 @@ turns liveness into a subscription with four mechanics:
   double-punishes UNKNOWN links already discounted by the alive-fraction.
 - **Wall-clock attestation** — rejected: breaks reproducibility; ticks are
   the organism's time.
+
+## Amendments from live red-team round 004 (same day)
+
+`tencent/Hy4-preview` attacked this design in four escalating iterations
+(gated by jev; transcript in `library/rounds/004`; $0.009, 38% cache hit).
+Findings and dispositions:
+
+1. **"Heartbeat laundering / ancestral piggybacking"** — a parasite child
+   rides a high-traffic ancestor's stamps. *Disposition: partially
+   mistaken (stamps go leaf→root; a sibling's win never stamps the
+   parasite, whose own staleness decays its chain) — but the underlying
+   demand is right: attestation needs provenance.* **Adopted**: every
+   stamp now records `last_attested_by` (the winning component), pinned
+   by test and persisted.
+2. **"UNKNOWN-washing"** — kill a lineage, revive the descendants: each
+   revival bought a fresh horizon without service, making mass
+   kill-and-revive cheaper than honest service. *Disposition: real.*
+   **Adopted**: revival is now **parole, not pardon** — revived nodes
+   carry `probation` and their chain's justification is capped at 0.5
+   until a genuine winning act re-attests them. Resurrect and cascaded
+   revivals land on parole too.
+3. **"UNKNOWN is operationally DEAD in bids"** — *Disposition: factually
+   wrong.* UNKNOWN contributes `alive/len` (a proportional discount),
+   not a zero; only DEAD is a hard veto. The questionable-vs-dead
+   distinction (ADR-0002) survives the economics intact.
+4. **"Discrete audits as a scheduling primitive"** — *Disposition:
+   rebutted.* Freshness decays **continuously** — `justification()` is
+   evaluated from `last_beat` on every tick; the 25-tick audit only
+   *formalizes* the lapse into UNKNOWN. There is no window in which a
+   stale purpose bids at full strength.
