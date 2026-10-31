@@ -32,7 +32,7 @@ from .identity import Commitment, Identity
 from .sleep import SleepCycle, SleepStats
 from .runtime import Component, Runtime, TickReport, WorldSnapshot
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = [
     "AttentionBid", "AttentionMarket", "CalibrationLog", "CalibrationRecord",

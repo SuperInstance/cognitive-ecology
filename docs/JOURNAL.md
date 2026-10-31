@@ -300,3 +300,22 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   v0.4 roadmap). OPEN_QUESTIONS ledger updated: #6 (honest archival) and
   #12 (formal conservation statement) CLOSED with their answers; #3
   advanced with the ADR-0009 result; #13 (journal compaction) opened.
+
+## 2026-10-31 — session three: running totals
+
+- **v0.3.0 shipped**: five major mechanics — re-attestation economics
+  (ADR-0007), proof-carrying conservation (ADR-0008), decision-model
+  tie-break + calibration (ADR-0009), honest archival (ADR-0010), and
+  the soak that runs them all together.
+- **Tests**: 121 → 179 (58 new, every one pinning a semantic found by
+  design, play-testing, or a live red team).
+- **Live calls this session**: 4 Hy4-preview ideation/red-team rounds +
+  53 jev decision gates + 50 jev arbitrations. Session spend: ~$0.027.
+  Cache gaming worked as designed — round 004's append-only transcript
+  hit 58% cached tokens by its last iteration.
+- **Commits this session**: 12 (recovery → v0.3.0).
+- **Ledger movement**: OPEN_QUESTIONS closed #6 (honest archival) and
+  #12 (formal conservation); advanced #3 (decision-model boundary);
+  opened #13 (journal compaction). The v0.4 frontier is society-basis
+  federation, WHY-DAG, outcome-weighted arbitration — proposed by the
+  models that now live inside the kernel's own market.

@@ -62,7 +62,7 @@ Every load-bearing claim in the docs, with its evidence:
 | 37 | Saved organisms carry their own conservation receipt | `Runtime.save()` embeds it; `make audit` prints it | ✅ verified in build |
 | 33 | Revival without service buys exactly one horizon; revival with service holds | `python experiments/reattestation_economics.py` (CI-verified: 2 lapses, 2 revives, ever_declared=3) | ✅ verified in build |
 
-**Test count:** 179 as of v0.3.0 (in progress) — **40 from the v0.2 kernel**
+**Test count:** 179 as of v0.3.0 — **56 from the v0.3 economics** (re-attestation 22, auditor 12, calibration 12, archival 10, soak 2 — with overlap across files) **+ the v0.2 kernel and v0.1 research line** (121 at v0.2.0). Both suites green together; `make test` ~4s. — **40 from the v0.2 kernel**
 (`src/cognitive_ecology/`, the subject of this audit) **+ 81 from the
 preserved v0.1 research line** (`src/ecology/`, alternative WHY
 formalism + LLM teacher layer; see README "Two development lines").

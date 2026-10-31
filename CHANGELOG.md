@@ -4,7 +4,7 @@ All notable changes to cognitive-ecology. Format follows
 keepachangelog.com; versioning is semantic-ish (pre-1.0: minor bumps for
 anything, patches for fixes).
 
-## [0.3.0] — 2026-10-31 (in progress)
+## [0.3.0] — 2026-10-31
 
 ### Added
 - **The soak test** (`experiments/soak.py`, `make soak`): one organism,

@@ -346,7 +346,7 @@ class Runtime:
         os.makedirs(path, exist_ok=True)
         state = {
             "format": "cognitive-ecology/state",
-            "version": "0.2.0",
+            "version": "0.3.0",
             "tick": self.tick_no,
             "seed": self.seed,
             "top_k": self.top_k,
