@@ -49,13 +49,25 @@ session. Layers:
 - L6 WHY (crown): every component answers why_should_this_run(). States:
   alive/dead/unknown/absent. CONSERVATION LAW: WHY is never deleted; killing
   a root cascades descendants to UNKNOWN (questionable, revivable).
+  Multi-parent purposes allowed (WHY DAG, best-path OR semantics); a
+  proof-carrying replay basis (genesis + necrology + journal) reproduces
+  the living tree bit-for-bit and every tamper vector is caught.
+  Liveness is a subscription: running under a purpose re-attests its
+  chain; unserved purposes lapse; revival lands on parole.
 - L7 Identity: slowly-drifting self-model; stable introspection string
   (prompt-cache-friendly).
 - L8 Sleep: idle time triggers replay, pruning, and dreams (mutations).
+- L9 Society (v0.4): treaties are foreign purpose references that route
+  attestation between organisms; provider death propagates hard
+  (question + exchange receipt), neglect propagates soft; a federation
+  auditor detects forged service. Journals compact under receipts with
+  exact replay equivalence.
 LLMs are citizens, not kings: they propose parameterized scripts from a safe
 action library; WHY decides what may exist, the market decides what runs.
 Decision models (typed outputs with calibrated confidence) are a second
-citizen class for structured choices under uncertainty.
+citizen class for structured choices under uncertainty — their delegated
+tie-breaks are scored by realized outcomes, and miscalibrated or
+value-destroying judgment is benched to the deterministic shadow.
 
 Answer with concrete, buildable specifics. Prefer tables and short numbered
 lists. No hype."""

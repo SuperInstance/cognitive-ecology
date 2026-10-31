@@ -741,3 +741,40 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
   sentence: 258 = 177 kernel + 81 v0.1, machine-checked every push.
 - 258 tests (257 + the docs-code gate); CI runs the truth step before
   the kernel tests on all three matrix versions.
+
+### Round 19 — live ideation 015: the wave-1 ledger through outside eyes
+
+- **Three slices on Hy4-preview** (~$0.019; spec bumped to v0.4 so the
+  first call re-primes the cache — a deliberate, receipted cache-bust):
+  the seventh engineer, the round ranking, the hidden assumptions, the
+  symptom diagnosis, and the retention verdict. Full texts in
+  `library/rounds/015-*.md`; provenance in the dogfood journal.
+- **The seventh engineer we did not cast** (operator/SRE): the kernel
+  is "a correct organism with no physiology" — no resource envelope,
+  no health surface, no tick-duration contract, no multi-process
+  guard, no export hatch, and sleep prunes only when idle (the safety
+  valve exists only when there is no pressure). Opened as
+  OPEN_QUESTIONS #15 rather than promised as a layer.
+- **Triage accepted in full**:
+  - ranking A > C > B > D — the build order stands;
+  - **round 20 reshaped**: event retention is **snapshot+delta**, not
+    a ring buffer, not plain truncation — the snapshot is a compacted
+    state root under receipts, deltas are the ordered stream since
+    that root, and pre-snapshot ranges are truncated only after the
+    snapshot proves exact replay equivalence. Pinning test named:
+    bit-identical replay equivalence through a snapshot+truncate;
+  - **round 21 reshaped**: the market log must be a READ MODEL — it
+    serializes the exact floats of the very bids the market cleared
+    (no re-computation, no rounding at write time), never a second
+    source of truth; run manifests carry the provenance;
+  - **round 22 note**: host drivers ship with a declared cost note and
+    determinism guidance — recipes must not make the missing
+    physiology load-bearing silently;
+  - **round 23 note**: duplicate rejection must count at the ecology
+    layer too (a rejected duplicate is a demotion in L4), not only at
+    the proposal seam.
+- The symptom diagnosis: **finding 3 (the invisible organism) is the
+  design gap** — the kernel lacks a first-class observation boundary /
+  read model, which is why every later need arrives as a bolted-on
+  feature. Round 21 is that read model, built on the exact-values
+  discipline above.

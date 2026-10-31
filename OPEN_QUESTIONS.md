@@ -102,6 +102,20 @@ kernel, ordered roughly by how soon it blocks somebody.
     are citizens, everything is recorded, sabotage leaves fingerprints
     — the honest answer for a single organism's body?
 
+15. **The organism has no physiology.** Opened by live ideation round
+    015 (the seventh engineer we did not cast): the kernel is a living
+    system with no metabolism. No resource envelope (memory/CPU/disk/
+    token ceilings, eviction priority, backpressure), no health
+    surface (tick-latency SLO, "am I behind?"), no tick-duration
+    contract (a host that sleeps owes N ticks — fast-forward or
+    dream?), no multi-process guard, no export hatch (`save()` is a
+    checkpoint, not a transferable organism). Sleep prunes only when
+    idle, so a busy production organism never consolidates — the
+    safety valve exists only when there is no pressure. What is the
+    minimal honest physiology: budgets and a degradation ladder in
+    L0, a health surface as a read model, or is "no metabolism" the
+    correct answer for a library that hosts owe a body to?
+
 ## Closed questions (with their answers)
 
 - **Should zero-attention bids clear in an empty market?** No — found
