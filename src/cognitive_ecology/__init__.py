@@ -22,6 +22,7 @@ from .events import Event, EventBus, EventKind
 from .graph import GEdge, GNode, WalkResult, WorldGraph
 from .memory import Memory
 from .attention import FACTORS, AttentionBid, AttentionMarket, ClearResult
+from .calibration import CalibrationLog, CalibrationRecord
 from .tension import Tension, TensionField
 from .scripts import Outcome, Script, ScriptEcology
 from .executive import Decision, Executive
@@ -33,7 +34,8 @@ from .runtime import Component, Runtime, TickReport, WorldSnapshot
 __version__ = "0.2.0"
 
 __all__ = [
-    "AttentionBid", "AttentionMarket", "ClearResult", "Commitment", "Component",
+    "AttentionBid", "AttentionMarket", "CalibrationLog", "CalibrationRecord",
+    "ClearResult", "Commitment", "Component",
     "ConservationAuditor", "ConservationReceipt", "Decision", "Event", "EventBus",
     "EventKind", "Executive", "FACTORS",
     "Forecast", "GEdge", "GNode", "Identity", "Memory", "NecroRecord",

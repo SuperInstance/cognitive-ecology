@@ -48,6 +48,7 @@ class AttentionBid:
     novelty: float = 0.0
     expected_value: float = 0.0
     resource: Optional[str] = None  # exclusive resource key, if any
+    success_p: Optional[float] = None  # claimed probability the action succeeds
 
     @property
     def attention(self) -> float:

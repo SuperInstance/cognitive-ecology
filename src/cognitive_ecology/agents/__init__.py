@@ -21,9 +21,10 @@ from .orchestrator import (
     build_when,
     parse_proposals,
 )
+from .decision import DecisionArbiter
 
 __all__ = [
     "ACTION_LIBRARY", "ACTION_LIBRARY_DOC", "Completion", "HY4_PRICES",
     "LLMAgent", "MockProvider", "OpenAICompatProvider",
-    "StablePrefixSession", "build_when", "parse_proposals",
+    "StablePrefixSession", "DecisionArbiter", "build_when", "parse_proposals",
 ]

@@ -219,3 +219,24 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   is determined by its (from, to) pair — revive/resurrect land on parole,
   activate does not, lapse/kill/park touch state only.
 - `make audit` prints a live receipt; 155 tests green (12 new).
+
+### Round 5 — judgment enters the market, and gets scored (ADR-0009)
+
+- **The integration boundary question is answered empirically**: decision
+  models enter at exactly ONE bounded hook — the executive's tie-break
+  among live contenders — with the veto law applied before they see
+  anything and silent degradation to the deterministic shadow on any
+  failure. Keyless default preserved.
+- **Calibration is the immune system**: bids may claim `success_p`; the
+  runtime scores every claim against the outcome. Live round 005
+  (50 ticks, jev arbiter): 50 calls, 0 errors, **50 divergences** —
+  the paid judgment is countable, not silent. The seeded overconfident
+  scout (claims 0.90, truly 0.52) measured MISCALIBRATED at Brier 0.395;
+  the humble archivist (0.40 claimed, 0.39 true) measured calibrated.
+  Overall Brier landed exactly on the 0.250 coin-flip line.
+- **Found and fixed live**: the typesafe choice question requires the
+  `criteria` field (422 otherwise) — pinned by probe, folded into the
+  adapter with the spec note; the first live run had silently degraded
+  (every exception swallowed by the executive's catch), which taught the
+  adapter to record `last_error` before raising.
+- 167 tests green (12 new).

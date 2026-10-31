@@ -41,6 +41,7 @@ from typing import Callable, Iterable, Optional, Protocol, runtime_checkable
 
 from .attention import AttentionBid, AttentionMarket
 from .audit import ConservationAuditor
+from .calibration import CalibrationLog
 from .events import Event, EventBus, EventKind
 from .executive import Executive
 from .graph import WorldGraph
@@ -176,6 +177,7 @@ class Runtime:
         )
         self.identity: Optional[Identity] = None
         self.simulator = None  # optional Simulator; inject for forecast-based EV
+        self.calibration = CalibrationLog()  # probabilistic claims vs outcomes
 
         self._components: dict = {}
         self.tick_no = 0
@@ -262,6 +264,12 @@ class Runtime:
             # running under a purpose re-attests it — use it or lose it —
             # and the winner's identity becomes the attestation's provenance
             self.why.stamp_chain(comp.why_node, t, by=comp.id)
+            # a bid that claimed a success probability gets scored on it
+            if d.bid.success_p is not None:
+                self.calibration.record(
+                    t, d.bid.src, d.bid.label, d.bid.success_p,
+                    1.0 if out.ok else 0.0,
+                )
             self.bus.emit(
                 EventKind.NOTE_ON, (d.bid.label, 1 if out.ok else 0),
                 src=d.bid.src, ts=t, cause=d.event_seq,
@@ -360,6 +368,7 @@ class Runtime:
             "ecology": self.ecology.to_json(),
             "identity": self.identity.to_dict() if self.identity else None,
             "market": self.market.stats(),
+            "calibration": self.calibration.to_json(),
         }
         with open(os.path.join(path, "state.json"), "w", encoding="utf-8") as f:
             json.dump(state, f, indent=1, sort_keys=True)

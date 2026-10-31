@@ -42,13 +42,18 @@ Every load-bearing claim in the docs, with its evidence:
 | 30 | A lapsed node cannot run and cannot self-attest; only revive(reason) restores it | `test_lapsed_node_blocked_until_revived` | ✅ tested |
 | 31 | Conservation holds under random kill/revive/lapse storms (43 nodes, 300 ticks) | `test_conservation_survives_random_storm_with_reaping` | ✅ tested |
 | 32 | Save/load round-trips horizon, last_beat, freshness, justification | `test_revived_purpose_resumes_and_persistence_roundtrips` | ✅ tested |
+| 38 | Brier scores are pinned math (perfect=0, coin=0.25, confidently-wrong=1); claims are validated | `tests/test_calibration.py::test_brier_score_math_is_pinned`, `::test_calibration_records_are_validated_and_filterable` | ✅ tested |
+| 39 | The runtime scores every success_p claim against its realized outcome | `test_runtime_scores_success_p_claims_against_outcomes` | ✅ tested |
+| 40 | The arbiter sees only live bids; vetoed bids never reach it; failing arbiters degrade to deterministic | `test_vetoed_bids_never_reach_the_arbiter`, `test_failing_arbiter_degrades_to_deterministic` | ✅ tested |
+| 41 | Arbiter divergence from the deterministic shadow is counted telemetry | `test_arbiter_reorders_contenders_and_divergence_counts` | ✅ tested |
+| 42 | Live: jev arbitrated 50 contended ticks, 0 errors, 50 divergences; overconfident scout measured MISCALIBRATED (Brier 0.395) | `library/rounds/005-decision-arbiter.md` (run 2026-10-31) | ✅ verified live |
 | 34 | Genesis + necrology + journal replay to exactly the living tree (states, heartbeats, provenance, parole) | `tests/test_audit.py::test_replay_equivalence_on_a_rich_tree`, `::test_replay_equivalence_through_save_load`, `::test_replay_survives_a_random_storm` | ✅ tested |
 | 35 | Every tamper vector is caught with the check named (flip, edit, remove, reorder, forge record, forge/drop stamp) | `test_tamper_*` (7 tests) | ✅ tested |
 | 36 | The hash chain pins necrology + journal against any edit, including superseded stamps | `test_chain_head_pins_history_and_journal` | ✅ tested |
 | 37 | Saved organisms carry their own conservation receipt | `Runtime.save()` embeds it; `make audit` prints it | ✅ verified in build |
 | 33 | Revival without service buys exactly one horizon; revival with service holds | `python experiments/reattestation_economics.py` (CI-verified: 2 lapses, 2 revives, ever_declared=3) | ✅ verified in build |
 
-**Test count:** 155 as of v0.3.0 (in progress) — **40 from the v0.2 kernel**
+**Test count:** 167 as of v0.3.0 (in progress) — **40 from the v0.2 kernel**
 (`src/cognitive_ecology/`, the subject of this audit) **+ 81 from the
 preserved v0.1 research line** (`src/ecology/`, alternative WHY
 formalism + LLM teacher layer; see README "Two development lines").

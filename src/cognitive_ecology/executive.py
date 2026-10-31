@@ -17,7 +17,7 @@ smarts live in the market (economics) and the WHY tree (purpose).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 from .attention import AttentionBid, AttentionMarket, ClearResult
 from .events import EventBus, EventKind
@@ -33,14 +33,29 @@ class Decision:
 
 
 class Executive:
-    """Clears the market, resolves conflicts, records decisions."""
+    """Clears the market, resolves conflicts, records decisions.
+
+    ``arbiter`` (optional) delegates ONE bounded decision: which of the
+    live contenders fill the k clearable slots. The veto law is applied
+    BEFORE the arbiter sees anything — a delegated tie-break can reorder
+    contenders, never resurrect vetoed bids. With ``arbiter=None`` the
+    deterministic top-k stands (the default; the organism stays keyless
+    and reproducible). ``last_divergence`` counts how often the arbiter
+    disagreed with the deterministic shadow — the honest cost of handing
+    judgment to a model.
+    """
 
     def __init__(self, market: AttentionMarket, bus: Optional[EventBus] = None,
-                 max_actions: int = 3) -> None:
+                 max_actions: int = 3,
+                 arbiter: Optional[Callable[[List[AttentionBid], int],
+                                            List[AttentionBid]]] = None) -> None:
         self.market = market
         self.bus = bus
         self.max_actions = max_actions
+        self.arbiter = arbiter
         self.last_clear: Optional[ClearResult] = None
+        self.last_divergence = 0
+        self.arbiter_calls = 0
 
     def arbitrate(self, bids: List[AttentionBid], top_k: Optional[int] = None,
                   ts: int = 0) -> List[Decision]:
@@ -49,6 +64,30 @@ class Executive:
             self.market.submit(b)
         k = top_k if top_k is not None else self.max_actions
         result = self.market.clear(k)
+
+        # delegated tie-break: the arbiter may reorder live contenders for
+        # the clearable slots; the veto law already removed the vetoed
+        if self.arbiter is not None:
+            # contenders = winners + LIVE starved only; vetoed bids
+            # (attention <= 0) are never shown to the arbiter at all
+            live = list(result.winners) + \
+                [b for b in result.starved if b.attention > 0.0]
+            live.sort(key=lambda b: (-b.attention, b.src, b.label))
+            if len(live) > k:
+                self.arbiter_calls += 1
+                try:
+                    chosen = self.arbiter(live, k)
+                except Exception:
+                    chosen = None  # a failing arbiter degrades, never crashes
+                if chosen is not None:
+                    chosen_ids = [id(b) for b in chosen]
+                    default_ids = [id(b) for b in live[:k]]
+                    self.last_divergence += (chosen_ids != default_ids)
+                    result = ClearResult(
+                        winners=list(chosen[:k]),
+                        starved=list(chosen[k:]) + [b for b in result.starved
+                                                    if id(b) not in chosen_ids],
+                    )
         self.last_clear = result
 
         held: dict = {}

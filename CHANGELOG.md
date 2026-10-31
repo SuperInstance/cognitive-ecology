@@ -7,6 +7,16 @@ anything, patches for fixes).
 ## [0.3.0] — 2026-10-31 (in progress)
 
 ### Added
+- **Decision-model integration, two narrow points** (ADR-0009, live round
+  005): the executive's optional `arbiter` hook delegates ONE bounded
+  decision (reordering live contenders when slots are contended — vetoed
+  bids never reach it, failures degrade to the deterministic shadow);
+  `DecisionArbiter` adapts typed choice questions (typesafe/Jev shape,
+  cache-stable state). Bids may carry `success_p`; the runtime scores
+  every claim against outcomes in a `CalibrationLog` (Brier, reliability
+  bins, per component). Live receipt: jev diverged from the shadow 50/50
+  contended ticks; the overconfident scout measured MISCALIBRATED
+  (Brier 0.395) while the humble archivist measured calibrated.
 - **Conservation auditor** (ADR-0008, adopted from live ideation round
   004b): every WhyTree carries a complete replay basis (genesis block +
   necrology + attestation journal); `ConservationAuditor.verify()` replays
