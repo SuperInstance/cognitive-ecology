@@ -92,6 +92,13 @@ class EventBus:
         # the rows. save() records the head; load() refuses a file that
         # folds to anything else (edits, drops, splices — all caught).
         self.chain_head: str = "genesis"
+        # Round 20b: after compact(), the dropped prefix is summarized by
+        # this anchor — the fold of everything that was ever dropped, in
+        # order. The invariant is: chain_head == fold(anchor, retained
+        # rows...) == fold("genesis", ALL rows ever emitted). The anchor
+        # lets the door verify a truncated file without resurrecting the
+        # dropped events — they are a receipt, not a resurrection.
+        self.chain_anchor: str = "genesis"
 
     @staticmethod
     def _fold(head: str, ev: "Event") -> str:
@@ -151,6 +158,32 @@ class EventBus:
     def since(self, seq: int) -> list:
         return [e for e in self._log if e.seq > seq]
 
+    def compact(self, keep: int) -> dict:
+        """Receipted truncation (round 20b): drop the oldest events.
+
+        Keeps the most recent ``keep`` events in memory and on disk; the
+        dropped prefix is folded into ``chain_anchor`` so the chain keeps
+        covering the FULL history — the head still summarizes everything
+        ever emitted, and a truncated file still verifies at the door.
+        Nothing is deleted silently: the caller records the returned
+        receipt (dropped/kept/anchor) wherever it keeps state, and the
+        events that went are recoverable only via that receipt, never by
+        resurrection. History is compacted, not rewritten.
+        """
+        keep = max(0, int(keep))
+        n = len(self._log)
+        if n <= keep:
+            return {"dropped": 0, "kept": n, "anchor": self.chain_anchor}
+        dropped_rows = self._log[: n - keep]
+        anchor = self.chain_anchor
+        for ev in dropped_rows:
+            anchor = self._fold(anchor, ev)
+        self._log = self._log[n - keep:]
+        self.chain_anchor = anchor
+        # chain_head is deliberately NOT recomputed: it already covers
+        # the dropped prefix — that is the whole point of the anchor.
+        return {"dropped": len(dropped_rows), "kept": keep, "anchor": anchor}
+
     # -- persistence ----------------------------------------------------
     def to_jsonl(self) -> str:
         return "\n".join(
@@ -158,14 +191,23 @@ class EventBus:
         )
 
     @classmethod
-    def from_jsonl(cls, text: str) -> "EventBus":
+    def from_jsonl(cls, text: str, anchor: str = "genesis") -> "EventBus":
+        """Rebuild the bus from a (possibly truncated) log.
+
+        ``anchor`` is the fold of the prefix that was compacted away
+        (round 20b): the chain resumes from it, so a truncated file folds
+        to exactly the head the full history would have produced.
+        """
         bus = cls()
+        bus.chain_anchor = anchor
+        head = anchor
         for line in text.splitlines():
             if not line.strip():
                 continue
             ev = Event.from_row(json.loads(line))
             bus._log.append(ev)
-            bus.chain_head = bus._fold(bus.chain_head, ev)
+            head = bus._fold(head, ev)
             if ev.seq > bus._seq:
                 bus._seq = ev.seq
+        bus.chain_head = head
         return bus

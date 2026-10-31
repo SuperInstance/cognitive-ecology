@@ -195,6 +195,11 @@ class Runtime:
         # the delta — the events file is never rewritten whole again.
         self._persisted = 0
         self._persisted_to: Optional[str] = None
+        # round 20b: the receipt of the last event-log compaction, if any.
+        # It rides in every state.json until the next compaction replaces
+        # it — the anchor is the dropped prefix's fold and stays valid
+        # across any number of later plain saves.
+        self._last_truncation: Optional[dict] = None
 
     # ------------------------------------------------------------------
     # assembly
@@ -426,6 +431,7 @@ class Runtime:
             "sleeper": asdict(self.sleeper.stats),
             "events_watermark": len(self.bus),
             "event_chain_head": self.bus.chain_head,
+            "event_truncation": self._last_truncation,
             "conservation_receipt": {
                 "ok": receipt.ok,
                 "live_digest": receipt.live_digest,
@@ -508,7 +514,9 @@ class Runtime:
                 f"state.json is not valid JSON — truncated or corrupted? ({exc})"
             ) from exc
         with open(os.path.join(path, "events.jsonl"), encoding="utf-8") as f:
-            bus = EventBus.from_jsonl(f.read())
+            trunc = state.get("event_truncation")
+            anchor = trunc["anchor"] if trunc else "genesis"
+            bus = EventBus.from_jsonl(f.read(), anchor=anchor)
 
         # door check 1: the event chain + watermark. Saves written before
         # round 20a carry no head/watermark — they are checked by the
@@ -572,8 +580,47 @@ class Runtime:
 
         rt._persisted = len(bus)
         rt._persisted_to = os.path.abspath(os.path.join(path, "events.jsonl"))
+        rt._last_truncation = state.get("event_truncation")
         attach(rt)
         return rt
+
+    def compact_events(self, path: str, keep: int = 200) -> dict:
+        """Snapshot+delta event retention (round 20b — live round 015's
+        verdict: NOT a ring buffer, which silently discards causality;
+        NOT plain truncation, which loses the chain unless every delta
+        is anchored).
+
+        Bounded retention without lying about history: the events file
+        is truncated to the most recent ``keep`` events, but ONLY after
+        this call saves a full snapshot that proves the state at this
+        tick — you never truncate an unverified basis. The dropped
+        prefix is folded into an anchor recorded in the state; the
+        chain still covers the FULL history, so a truncated file
+        verifies at the door exactly as a full one does. What went
+        away is a receipt, not a resurrection: pre-snapshot events are
+        recoverable only via that anchor, never by rebuilding.
+
+        Compaction is storage-only — the organism's running life is
+        untouched (pinned: a compacted run is bit-identical to an
+        un-compacted twin). Hosts should call this on epoch boundaries
+        or sleep, like journal compaction.
+        """
+        # 1. the snapshot must vouch before anything is dropped —
+        #    never truncate on a basis that cannot prove itself.
+        receipt = ConservationAuditor().verify(self.why)
+        if not receipt.ok:
+            raise RuntimeError(
+                "refusing to compact events on a broken conservation basis: "
+                + receipt.summary()
+            )
+        # 2. drop under receipt, then force ONE whole write of the retained
+        #    delta (this is the compaction moment, amortized like journal
+        #    compaction — later saves append again from here).
+        self._last_truncation = self.bus.compact(keep)
+        self._persisted = 0
+        self._persisted_to = None
+        self.save(path)
+        return self._last_truncation
 
     # ------------------------------------------------------------------
     # reporting

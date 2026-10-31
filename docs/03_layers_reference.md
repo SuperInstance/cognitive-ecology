@@ -37,14 +37,19 @@ the broken component starves on its own economics. A failed action's
 `Outcome.note` reaches the log as an `ERROR` event, so on-call can see
 *why*, not just *that*. The body survives its organs.
 
-**Persistence (round 20a):** `save()` is atomic (temp + rename — a
-torn write cannot come from us) and append-mode for events (each save
+**Persistence (rounds 20a + 20b):** `save()` is atomic (temp + rename —
+a torn write cannot come from us) and append-mode for events (each save
 appends only the delta; the file is never rewritten whole). The state
 records an event chain head and a watermark; `load()` verifies at the
 door — corrupt JSON, a tampered event log (any edit changes the fold),
 an interrupted save (watermark mismatch), or an edited WHY state (the
 conservation receipt is recomputed, never trusted) all raise by name
-instead of booting a silently-wrong organism.
+instead of booting a silently-wrong organism. For bounded retention,
+`rt.compact_events(path, keep=N)` truncates the log to the most recent
+N events under a receipt — only after a full snapshot proves the state
+first — with the dropped prefix folded into an anchor the door can
+verify; a compacted life is bit-identical to an un-compacted twin
+(pinned).
 
 **Gotchas:** `run()` is not resumed automatically across processes —
 `save()`/`load()` is the persistence path; `attach()` must re-register

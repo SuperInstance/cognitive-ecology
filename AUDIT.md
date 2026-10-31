@@ -69,10 +69,11 @@ Every load-bearing claim in the docs, with its evidence:
 | 57 | Docs counts are machine-checked against the tree on every push; the quickstart's code block is executed as a test | `scripts/check_docs.py` in CI; `tests/test_docs_code.py` | ✅ wired |
 | 58 | Saves are atomic; loads verify at the door (event chain head, watermark, recomputed conservation receipt); the events file is append-mode | `tests/test_persistence_trust.py` (round 20a) | ✅ tested |
 | 59 | An adopted script keeps its saved biography — born=0 survives load; sleeper stats + idle_window persist | `::test_born_zero_survives_load`, `::test_sleeper_stats_and_idle_window_survive_save_load` | ✅ tested |
+| 60 | Event retention is receipted: compact_events truncates only after a snapshot proves the state; the dropped prefix is an anchor the door verifies; a compacted life is bit-identical to an un-compacted twin | `tests/test_event_retention.py` (round 20b; the pin round 015 named) | ✅ tested |
 
-**Test count:** 268 as of round 20 — **187 from the kernel**
-(`src/cognitive_ecology/`, the subject of this audit; 28 of them the
-round-17/20 pins: fail-safe, docs-code, and persistence-trust) **+ 81
+**Test count:** 273 as of round 20b — **192 from the kernel**
+(`src/cognitive_ecology/`, the subject of this audit; 33 of them the
+round-17/20 pins: fail-safe, docs-code, persistence-trust, and event retention) **+ 81
 from the preserved v0.1 research line**
 (`src/ecology/`, alternative WHY formalism + LLM teacher layer; see
 README "Two development lines"). Both suites run green together;

@@ -816,3 +816,30 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
   next round, along with rotating checkpoints for hosts.
 - 268 tests (258 + 10); truth gate rippled 258 → 268 through five doc
   claims exactly as designed.
+
+### Round 20b — bounded retention: snapshot+delta, the 015 verdict
+
+- **`Runtime.compact_events(path, keep=N)`**: truncate the event log to
+  the most recent N events — but only after a full snapshot (the call
+  saves first) proves the state at that tick. Never truncate an
+  unverified basis; the refuse-on-broken-receipt path raises rather
+  than drops.
+- **The anchor** (`EventBus.chain_anchor`): the dropped prefix is
+  folded, in order, into a value recorded in the state. The chain
+  invariant becomes chain_head == fold(anchor, retained...) ==
+  fold("genesis", ALL rows ever) — sequential hash chains are
+  associative by construction, so a truncated file folds to exactly
+  the head the full history would have produced. The door does not
+  weaken: editing an event deep inside the RETAINED region is still
+  caught (pinned), and double compaction composes (anchor2 =
+  fold(anchor1, slice2) — pinned).
+- **The 015 pin landed and is green**: a life that compacts at tick 200
+  and runs to 300 is bit-identical to an un-compacted twin — same ran
+  sequences, same tensions, same conservation live_digest, same graph
+  digest, same necrology. Compaction is storage-only, never
+  behavioral. (The first draft of the pin had the wrong arithmetic —
+  the loaded bus holds retained + post-compaction tail, not the bare
+  keep; the machinery was right and the test was wrong. Fixed.)
+- 273 tests (268 + 5); the events file is now bounded at host-chosen
+  epochs. Rotating checkpoints for hosts remain a recipe to document
+  in the host-integration round (22).

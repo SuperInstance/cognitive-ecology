@@ -31,6 +31,19 @@ anything, patches for fixes).
   (tick-0-born scripts no longer re-stamp at the load tick — the
   game-dev persona's save-compat bug). 10 tests.
 
+- **Bounded event retention — snapshot+delta** (round 20b, live
+  ideation 015's verdict; the game-dev persona's hard ceiling — ~19
+  events/tick meant 33 MB and 0.5 s autosave hitches at 100k ticks):
+  `rt.compact_events(path, keep=N)` truncates the log to the most
+  recent N events under a receipt, ONLY after a full snapshot proves
+  the state at that tick (never truncate an unverified basis). The
+  dropped prefix is folded into a chain anchor the door can verify —
+  the chain still covers the FULL history, so a truncated file
+  verifies exactly as a full one does, and what went away is a
+  receipt, not a resurrection. Pinned by the test round 015 named: a
+  compacted life is bit-identical to an un-compacted twin (same life,
+  same books, same graph digest). Double compaction composes anchors.
+
 ### Fixed
 - **Fail-safe totality** (round 17, found by the wave-1 red team — six
   zero-shot engineers play-tested the repo as real users):
