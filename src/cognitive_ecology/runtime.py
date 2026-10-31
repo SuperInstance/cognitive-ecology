@@ -220,6 +220,51 @@ class Runtime:
             node_id=node_id, parents=parents,
         )
 
+    def ensure_why(self, statement: str, parent: Optional[str] = None,
+                   tick: Optional[int] = None, node_id: Optional[str] = None,
+                   parents: Optional[list] = None):
+        """Idempotent declare (round 23 — the attach rite, de-rited).
+
+        Re-attaching an organism (after load, or a dev hot-reload) used
+        to mean has()-guards before every declare. Now: if the node
+        exists it is returned as-is — but a statement MISMATCH raises,
+        because an id means one purpose, forever. Without a node_id,
+        this is a plain declare (statements may repeat legitimately
+        across branches; only ids are load-bearing).
+        """
+        if node_id is not None and self.why.has(node_id):
+            node = self.why.node(node_id)
+            if node.statement != statement:
+                raise ValueError(
+                    f"WHY node {node_id!r} already means "
+                    f"{node.statement!r}, not {statement!r}"
+                )
+            return node
+        return self.declare_why(statement, parent=parent, tick=tick,
+                                node_id=node_id, parents=parents)
+
+    def ensure_tension(self, name: str, growth: float = 0.02,
+                       level: float = 0.0, description: str = ""):
+        """Idempotent tension add: never resets a saved drive's level."""
+        return self.tensions.ensure(name, growth=growth, level=level,
+                                    description=description)
+
+    def ensure_component(self, comp) -> bool:
+        """Register unless already registered. True if newly registered;
+        False if the id was already attached (state untouched)."""
+        if comp.id in self._components:
+            return False
+        self.register(comp)
+        return True
+
+    def ensure_script(self, script, tick: Optional[int] = None):
+        """Idempotent script adopt (delegates to the ecology; kept as a
+        Runtime method so attach rites read uniformly). If a live script
+        with this name exists it is returned; otherwise the script is
+        adopted with any saved track record rehydrated."""
+        return self.ecology.ensure_script(
+            script, self.tick_no if tick is None else tick)
+
     def register(self, comp) -> None:
         """A component joins the organism. Its WHY node must already exist.
 

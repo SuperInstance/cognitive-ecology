@@ -31,6 +31,8 @@ that proposes garbage eventually loses the market's ear.
 """
 from __future__ import annotations
 
+import math
+
 import json
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple
@@ -101,7 +103,15 @@ def _act_rest(ctx, args: dict) -> Outcome:
     name = str(args.get("tension", "energy"))
     if not ctx.tensions.has(name):
         return Outcome(False, f"unknown tension {name!r}")
-    amount = float(args.get("amount", 0.3))
+    try:
+        amount = float(args.get("amount", 0.3))
+    except (TypeError, ValueError):
+        return Outcome(False, "amount must be a number")
+    # round 23 (wave-1 finding 7): a nan/inf amount used to slip through
+    # to relieve(), where max(0.0, nan) silently zeroed the tension —
+    # a free lunch. The seam rejects it; the kernel no-ops it. Both.
+    if not math.isfinite(amount):
+        return Outcome(False, f"amount must be finite, got {args.get('amount')!r}")
     ctx.tensions.relieve(name, amount)
     return Outcome(True, f"relieved {name} by {amount}")
 
@@ -333,10 +343,10 @@ class LLMAgent:
         self.last_propose = ctx.tick
         proposals, note = parse_proposals(completion.text)
         spawned: list = []
+        rejected: list = []
         for p in proposals[: self.max_proposals]:
-            name = p["name"]
             script = Script(
-                name=name,
+                name=p["name"],
                 why_node=self.why_node,
                 owner=self.id,
                 relieves=tuple(p["relieves"]),
@@ -347,17 +357,32 @@ class LLMAgent:
                         "when_hint": p["when_hint"]},
             )
             try:
-                ctx.ecology.spawn(script, tick=ctx.tick)
-                spawned.append(script.name)
+                new, dup = ctx.ecology.spawn_unique(script, tick=ctx.tick)
             except ValueError:
-                # name already live — variant it with the tick instead
-                script.name = f"{name}~{ctx.tick}"
-                try:
-                    ctx.ecology.spawn(script, tick=ctx.tick)
-                    spawned.append(script.name)
-                except ValueError:
-                    pass
+                # name is live with a DIFFERENT behavior: name-squatting,
+                # not a behavior duplicate — reject it too (round 23:
+                # the ~tick variant hack is gone; bloat is over)
+                new, dup = None, script
+            if new is not None:
+                spawned.append(new.name)
+            else:
+                rejected.append(f"{script.name}=={dup.name if dup else '?'}")
+                # the demotion is VISIBLE: the model reads recent events,
+                # so its next proposal turn sees what was rejected and why
+                ctx.emit(
+                    EventKind.ERROR,
+                    ("proposal", "duplicate rejected",
+                     f"{script.name} already exists as "
+                     f"{dup.name if dup else 'a live name'}"),
+                    src=self.id,
+                )
+        # duplicates demote: accept_rate counts SPAWNS only, so repeated
+        # re-proposals lose expected value and the propose bid starves
         self.accept_rate = ema(self.accept_rate, 1.0 if spawned else 0.0)
         if spawned:
-            return Outcome(True, f"spawned {spawned} ({note})")
+            extra = f"; {len(rejected)} duplicate(s) rejected" if rejected else ""
+            return Outcome(True, f"spawned {spawned}{extra} ({note})")
+        if rejected:
+            return Outcome(False, f"{len(rejected)} duplicate proposal(s) "
+                                  f"rejected ({note})")
         return Outcome(False, f"no valid proposals ({note})")

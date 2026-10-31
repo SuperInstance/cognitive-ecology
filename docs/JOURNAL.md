@@ -944,3 +944,41 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
 - Next: **round 23 — the safe seam + attach() ergonomics** (idempotent
   `ensure_*` builders, the migration page, duplicate-rejection
   economics at the ecology layer), then **wave-2** fresh personas.
+
+### Round 23 — the safe seam: the attach rite, de-rited; bloat, over
+
+- **ensure_* is the rite, made law.** Priya and Morgan's finding 6
+  ("attach() is a rite of passage") closed at the layer that owns it:
+  `ensure_why` (idempotent by node_id; a statement MISMATCH raises —
+  an id means one purpose, forever), `ensure_tension` (never resets a
+  saved drive's level — the state file answers for levels, not the
+  code), `ensure_component`, `ensure_script` (rehydrates saved track
+  records). The pinned test is the whole point: the rite runs TWICE,
+  painlessly, no guards. The old guarded pattern and the new one are
+  translated side by side in docs/MIGRATIONS.md, which also states the
+  compatibility law the code already lives by: newer readers accept
+  older states by absence; proofs are re-derived at the door, never
+  trusted from disk.
+- **Duplicate rejection at the ecology layer (the 015 note, done).**
+  `behavior_signature`: owner + action + args + when_hint — the NAME
+  is not the behavior. `spawn_unique` rejects an exact live duplicate
+  and returns it; rejections are counted, tailed (bounded at 200),
+  and — the part that makes it economics rather than policy — the
+  orchestrator's accept_rate counts spawns only, so a model that
+  keeps re-proposing the same script watches its propose bid's
+  expected value decay until it starves. The old `name~tick` variant
+  hack (which MULTIPLIED duplicates: every re-proposal became a new
+  clone) is deleted. The demotion is also visible to the demoted: an
+  ERROR event on the bus, which the model reads in its next proposal
+  turn's recent-events window. Kai's population-bloat finding is
+  closed at both the seam and the layer.
+- **The nan hole, closed twice.** `rest` with amount nan used to slip
+  through to relieve(), where `max(0.0, nan)` silently zeroed the
+  tension — a free lunch the wave-1 red team ordered. Now the action
+  library rejects non-finite amounts with an honest note, AND the
+  kernel (relieve/burden) no-ops them: the seam is polite, the kernel
+  is incorruptible. Defense in depth, pinned at both layers.
+- 324 tests (306 + 18); docs 03 and 06 updated; MIGRATIONS.md added
+  (not a numbered guide — meta-doc, like PROCESS).
+- Next: **wave-2** — fresh personas re-play-test the whole wave
+  (17–23) to verify it landed as experienced, not just as tests.

@@ -135,6 +135,29 @@ print(session.stats())   # calls, cache_hit_rate, est_saved_usd
 means writing one audited function — the model gains a new verb, never
 a new kind of power.
 
+## Duplicate proposals are demotions, not acceptances (round 23)
+
+A model that re-proposes what already lives used to bloat the
+population: the old seam respawned every name collision as
+`name~tick` clones. Now the ecology decides: `spawn_unique` compares
+**behavior signatures** (owner + action + args + when_hint — the name
+is not the behavior) against the *live* population and rejects exact
+duplicates. A rejection is a demotion with receipts:
+
+- counted (`ecology.duplicates_rejected`) and tailed
+  (`ecology.duplicate_log`, bounded at 200);
+- announced on the bus as an ERROR event the model itself reads on its
+  next proposal turn — the demotion is visible to the demoted;
+- paid for: the orchestrator's `accept_rate` counts *spawns* only, so
+  repeat re-proposals decay the propose bid's expected value until it
+  starves. The market teaches the model to propose new behaviors.
+
+A dead script's re-proposal is a resurrection, not a duplicate — only
+the live population is searched. And `rest` now rejects non-finite
+amounts at the seam (`amount must be finite`) while the kernel no-ops
+them (defense in depth: `max(0.0, nan)` used to zero a tension for
+free — that lunch is off the menu).
+
 ## Dogfooding
 
 The project uses its own tools on itself: `scripts/ideate.py` runs

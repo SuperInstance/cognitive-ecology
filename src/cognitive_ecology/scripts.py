@@ -109,6 +109,16 @@ def _safe_when(fn: Callable, ctx) -> bool:
         return False
 
 
+def _stable(value) -> str:
+    """Canonical text for a param value, so signatures compare by
+    content, never by dict ordering or float repr accidents."""
+    import json
+    try:
+        return json.dumps(value, sort_keys=True, separators=(",", ":"))
+    except (TypeError, ValueError):
+        return repr(value)
+
+
 class ScriptEcology:
     """The population: spawn, compete, starve, die, mutate, remember."""
 
@@ -119,6 +129,11 @@ class ScriptEcology:
         self._necrology: list = []    # ScriptDeath records, append-only
         self._saved: dict = {}        # name -> stats, for rehydration after load()
         self._next = 0
+        # duplicate economics (round 23): a rejected duplicate is a
+        # demotion — counted and tailed, never silent. Ephemeral by
+        # design (observation, not organism state).
+        self.duplicates_rejected = 0
+        self.duplicate_log: list = []   # (tick, rejected_name, live_name)
         self.bus = bus
         self.rng = rng or random.Random(7)
         self.starve_limit = starve_limit
@@ -174,6 +189,68 @@ class ScriptEcology:
             # restamp born at the load tick (see _register)
             return self._register(script, tick, _restamp_born=False)
         return self._register(script, tick)
+
+    def ensure_script(self, script: Script, tick: int = 0) -> Script:
+        """Idempotent adopt (round 23 — the attach rite, de-rited).
+
+        If a live script with this name exists, it is returned as-is;
+        otherwise the script is adopted (rehydrating any saved track
+        record after a load). Attach rites can now run twice safely.
+        """
+        existing = self._by_name.get(script.name)
+        if existing is not None:
+            return existing
+        return self.adopt(script, tick)
+
+    # ------------------------------------------------------------------
+    # duplicate economics (round 23): a rejected duplicate is a demotion
+    # ------------------------------------------------------------------
+    @staticmethod
+    def behavior_signature(script: Script) -> tuple:
+        """What a script DOES, ignoring its name and track record.
+
+        For library-parameterized scripts (LLM proposals carry
+        ``params`` = action + args + when_hint) the signature is the
+        parameterization: same action, same arguments, same trigger
+        means the same behavior whatever it is called. For code-defined
+        scripts without params, the name IS the behavior.
+        """
+        if script.params:
+            return (script.owner, tuple(sorted(
+                (k, _stable(v)) for k, v in script.params.items()
+            )))
+        return (script.owner, script.name)
+
+    def find_duplicate(self, script: Script) -> Optional[Script]:
+        """The live script that already does exactly this, if any."""
+        sig = self.behavior_signature(script)
+        for s in self._scripts.values():
+            if self.behavior_signature(s) == sig:
+                return s
+        return None
+
+    def spawn_unique(self, script: Script, tick: int = 0):
+        """Spawn unless a live script already does exactly this.
+
+        The ideation-015 verdict, implemented at the ecology layer: a
+        rejected duplicate is a DEMOTION — it is counted
+        (``duplicates_rejected``), logged (``duplicate_log``), and the
+        caller's economics see it (the orchestrator's accept_rate falls,
+        its propose bids lose expected value). Population bloat by
+        re-proposal is over: exactly one live script per behavior.
+
+        Returns ``(spawned, duplicate)`` — exactly one is not None.
+        A dead script's re-proposal is a resurrection, not a duplicate:
+        only the LIVE population is searched.
+        """
+        dup = self.find_duplicate(script)
+        if dup is not None:
+            self.duplicates_rejected += 1
+            self.duplicate_log.append((tick, script.name, dup.name))
+            if len(self.duplicate_log) > 200:  # bounded: the recent tail
+                self.duplicate_log.pop(0)
+            return None, dup
+        return self.spawn(script, tick), None
 
     def get(self, name: str) -> Optional[Script]:
         return self._by_name.get(name)

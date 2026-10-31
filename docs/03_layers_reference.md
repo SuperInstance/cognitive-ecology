@@ -16,6 +16,9 @@ nothing is ever deleted). Never calls a model.
 rt = Runtime(seed=7, top_k=3, idle_window=5)
 rt.declare_why("statement"[, parent, node_id])   # helper over why.declare
 rt.register(component)                            # WHY node must exist
+rt.ensure_why / ensure_tension / ensure_component / ensure_script
+#      ^ the attach rite, de-rited (round 23): idempotent by contract —
+#        re-running attach() after load() or a hot reload cannot raise
 reports = rt.run(100, on_tick=my_callback)        # list[TickReport]
 rt.save("runs/x"); rt2 = Runtime.load("runs/x", attach=fn)
 ```

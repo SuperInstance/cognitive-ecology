@@ -67,11 +67,12 @@ This file is for finding things fast.
 | `docs/tutorials/tutorial_03_attention_market.md` | controlled experiments on the factors |
 | `docs/tutorials/tutorial_04_llm_agents_and_caching.md` | LLM citizens + the caching game |
 | `docs/ADRs/` | 15 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment, the ballast, the read model) |
+| `docs/MIGRATIONS.md` | upgrading organisms across versions |
 
 ## The v0.1 research line (`src/ecology/` — kept as provenance)
 
 A parallel implementation from an earlier line of work; installed and
-tested alongside the kernel (81 of the 306 tests). Preserved intact.
+tested alongside the kernel (81 of the 324 tests). Preserved intact.
 
 | Path | What it is |
 |---|---|

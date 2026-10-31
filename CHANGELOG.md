@@ -7,6 +7,26 @@ anything, patches for fixes).
 ## [Unreleased]
 
 ### Added
+- **The attach rite, de-rited + duplicate economics** (round 23; wave-1
+  findings 6 and 7). `Runtime.ensure_why / ensure_tension /
+  ensure_component / ensure_script`: idempotent by contract — attach()
+  can run twice (after load, or a dev hot-reload) without a single
+  has()-guard; one honesty rule (an existing node_id re-ensured with a
+  different statement raises: an id means one purpose, forever);
+  ensure_tension never resets a saved drive's level;
+  ensure_script rehydrates saved track records. `ScriptEcology
+  .spawn_unique`: a rejected duplicate is a DEMOTION — behavior
+  signatures (owner + action + args + when_hint; the name is not the
+  behavior) compared against the live population, rejections counted
+  (`duplicates_rejected`), tailed (`duplicate_log`, bounded), and the
+  orchestrator's `~tick` variant hack is GONE: duplicates emit an
+  ERROR event the model itself reads next turn, accept_rate counts
+  spawns only so re-proposals decay the propose bid's expected value —
+  population bloat by re-proposal is over. `rest` rejects non-finite
+  amounts at the seam and `relieve`/`burden` no-op them in the kernel
+  (the `max(0.0, nan)` free-lunch hole, closed at both layers).
+  `docs/MIGRATIONS.md`: the compatibility law, release-by-release
+  upgrade notes, and the old-rite/new-rite translation table.
 - **Host drivers + the hosting guide** (round 22; wave-1 finding 4,
   "no host-integration story"). `WallClockDriver` (zero-dep,
   injectable clocks) ticks an organism on wall-clock intervals with
@@ -52,8 +72,9 @@ anything, patches for fixes).
   seeds and aggregates mean ± spread per metric. The sweep's first
   use found `minimal_world` is seed-invariant (nothing consumes
   randomness) — the instrument calibrated itself on day one.
-- 17 new tests (`tests/test_marketlog.py`); 16 more in round 22
-  (`tests/test_drivers.py`, `tests/test_example04_asks.py`): 306 total.
+- 17 new tests (`tests/test_marketlog.py`); 16 in round 22
+  (`tests/test_drivers.py`, `tests/test_example04_asks.py`); 18 in
+  round 23 (`tests/test_safe_seam.py`): 324 total.
 
 ### Added (earlier unreleased rounds)
 - **Machine-checked docs truth** (round 18, the wave-1 diligence top

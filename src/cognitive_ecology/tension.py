@@ -16,8 +16,14 @@ blaming the market.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Optional
+
+
+def _finite(x) -> bool:
+    """True for usable numbers: rejects nan/inf from any caller."""
+    return isinstance(x, (int, float)) and math.isfinite(x)
 
 
 @dataclass
@@ -42,6 +48,17 @@ class TensionField:
         self._t[name] = t
         return t
 
+    def ensure(self, name: str, growth: float = 0.02, level: float = 0.0,
+               description: str = "") -> Tension:
+        """Idempotent add (round 23, the attach rite): return the existing
+        tension untouched — a re-attached organism must not reset drives
+        its state file already answers for — or add it fresh."""
+        t = self._t.get(name)
+        if t is not None:
+            return t
+        return self.add(name, growth=growth, level=level,
+                        description=description)
+
     def has(self, name: str) -> bool:
         return name in self._t
 
@@ -63,18 +80,29 @@ class TensionField:
         return changes
 
     def relieve(self, name: str, amount: float = 0.5) -> float:
-        """Satisfaction discharges the drive. Returns the new level."""
+        """Satisfaction discharges the drive. Returns the new level.
+
+        Non-finite amounts are a no-op (round 23): a hostile or garbled
+        float must not buy free relief — `max(0.0, nan)` silently zeroes
+        a tension, which is a free lunch the action library's callers
+        must not be able to order.
+        """
         t = self._t.get(name)
         if t is None:
             return 0.0
+        if not _finite(amount):
+            return t.level
         t.level = max(0.0, t.level - amount)
         return t.level
 
     def burden(self, name: str, amount: float = 0.1) -> float:
-        """Acting has costs: increase a drive (e.g. exploring costs energy)."""
+        """Acting has costs: increase a drive (e.g. exploring costs energy).
+        Non-finite amounts are a no-op (same law as relieve)."""
         t = self._t.get(name)
         if t is None:
             return 0.0
+        if not _finite(amount):
+            return t.level
         t.level = min(1.0, t.level + amount)
         return t.level
 
