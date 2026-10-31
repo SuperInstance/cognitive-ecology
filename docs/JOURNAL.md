@@ -843,3 +843,58 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
 - 273 tests (268 + 5); the events file is now bounded at host-chosen
   epochs. Rotating checkpoints for hosts remain a recipe to document
   in the host-integration round (22).
+
+### Round 21 — the measurable organism: the read model ships
+
+- **The design gap, closed as architecture.** Finding 3 ("the organism
+  is invisible") was diagnosed by ideation 015 as the absence of a
+  first-class observation boundary. `marketlog.py` is that boundary:
+  a READ MODEL over the attention market, wired into every Runtime
+  (constructor and load), fed by the executive after every decision is
+  final. One row per bid per tick: the exact five factors, the
+  attention product, resource, claimed success_p, and the market's
+  verdict — run / yield / starved / VETOED, with vetoed finally
+  separated from starved (the event stream mixes them; the read model
+  does not). Arbiter rows appear only when the arbiter truly
+  arbitrated — a degraded or uncontended judgment writes nothing.
+- **The three laws, pinned before they were promises**: exact
+  (bit-for-bit float roundtrips through json — the test uses
+  `0.1 + 0.2` and `1/3`, and the first draft FAILED its own discipline
+  by rounding clear_rate in summary(); the test caught its own
+  author), not a second source of truth (rows serialize the market's
+  ClearResult and the executive's Decisions), non-perturbing
+  (bit-identical twin runs, log read every tick vs never touched; and
+  the entire pre-existing 273-test suite passed unchanged with the log
+  wired in — the cheapest non-perturbation proof available).
+- **`veto_reasons()` is the docs promise, evidenced.** "Fix the
+  factor; don't bypass the market" now comes with WHICH factor was
+  zero, in the market's own stored floats. Writing its test surfaced a
+  truth worth pinning: the script ecology pre-gates zero-justification
+  scripts upstream of the market, so vetoed rows can only come from
+  components that submit raw bids (LLM proposal agents, custom
+  components) — the veto law protects the market no matter who
+  speaks. The test documents it.
+- **Provenance: runs can no longer be orphans.** run_rounds.py writes
+  a manifest per run (kernel version, python, platform, git commit,
+  seed, config, wall time, sha256 of every output) and now emits
+  `market.jsonl` alongside telemetry. `--sweep N` aggregates mean ±
+  spread per metric across seeds — and its FIRST USE found that
+  minimal_world is seed-invariant (three seeds, one event stream;
+  nothing in the demo consumes randomness). The instrument calibrated
+  itself on day one; the finding is documented, not silently
+  "fixed" (changing the demo's rng use would destabilize pinned
+  determinism tests for no user gain).
+- **ADR-0015** records the decision and the deferred follow-ons
+  (push-stream sinks, factor histograms, the physiology round
+  consuming summary() as its health surface). docs/09_market_log.md
+  is the user-facing guide; truth gate rippled 273→290 tests and
+  14→15 ADRs through every doc claim exactly as round 18 designed.
+- Memory discipline: the in-memory log is a bounded tail (keep=100k
+  default), never rides in state.json, fresh on load — observation
+  history belongs to the observer, not the organism.
+- Next, per the ledger: **round 22 — host integration** (tick drivers
+  + recipes: cron, game loop, FastAPI lifespan; example-04's lossy
+  read; rotating checkpoints; declared cost notes), then **round 23 —
+  the safe seam + attach() ergonomics** (ensure_*, migration page,
+  duplicate rejection at the ecology layer), then **wave-2** fresh
+  personas to verify it all landed as experienced.

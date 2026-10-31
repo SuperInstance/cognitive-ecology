@@ -27,6 +27,7 @@ from .calibration import CalibrationLog, CalibrationRecord
 from .tension import Tension, TensionField
 from .scripts import Outcome, Script, ScriptEcology
 from .executive import Decision, Executive
+from .marketlog import MarketLog
 from .simulations import Forecast, Simulator
 from .identity import Commitment, Identity
 from .sleep import SleepCycle, SleepStats
@@ -43,7 +44,7 @@ __all__ = [
     "AttentionBid", "AttentionMarket", "CalibrationLog", "CalibrationRecord",
     "ClearResult", "ColdStorage", "Commitment", "Component",
     "ConservationAuditor", "ConservationReceipt", "Decision", "Event", "EventBus",
-    "EventKind", "Executive", "FACTORS",
+    "EventKind", "Executive", "FACTORS", "MarketLog",
     "Forecast", "GEdge", "GNode", "Identity", "Memory", "NecroRecord",
     "Outcome", "Runtime", "Script", "ScriptEcology", "Simulator", "SleepCycle",
     "SleepStats", "Tension", "TensionField", "TickReport", "WalkResult",

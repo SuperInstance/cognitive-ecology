@@ -7,6 +7,34 @@ anything, patches for fixes).
 ## [Unreleased]
 
 ### Added
+- **The market log — the observation boundary as a read model**
+  (round 21, ADR-0015; wave-1 finding 3, "the organism is invisible").
+  `Runtime.market_log` serializes every market clearing as it happens:
+  one row per bid per tick with the EXACT floats of the five attention
+  factors and the attention product (no rounding, no re-derivation —
+  json roundtrips bit-for-bit), the resource and claimed success
+  probability, and the market's verdict (`run` / `yield` / `starved` /
+  `vetoed`, with vetoed finally distinguished from starved). When the
+  delegated arbiter truly arbitrated, a row records pick, confidence,
+  and divergence. `summary()` (volumes, clear rate, winners, vetoes),
+  `veto_reasons()` (WHICH factor was zero, in the market's own
+  numbers), `bids()` (pandas-ready), bounded retention
+  (`MarketLog(keep=...)`, default 100k rows), `to_jsonl()` /
+  `from_jsonl()`. Three laws pinned by test: exact, not a second
+  source of truth, non-perturbing (bit-identical twin runs). The log
+  is observation, not state — never saved, fresh on load. Guide:
+  docs/09_market_log.md.
+- **Run provenance and seed sweeps** (`scripts/run_rounds.py`): every
+  run writes `manifest.json` (kernel version, python, platform, git
+  commit, seed, config, wall time, sha256 digest of every output) —
+  orphaned outputs are no longer possible; `market.jsonl` is written
+  alongside the telemetry; `--sweep N` runs the scenario across N
+  seeds and aggregates mean ± spread per metric. The sweep's first
+  use found `minimal_world` is seed-invariant (nothing consumes
+  randomness) — the instrument calibrated itself on day one.
+- 17 new tests (`tests/test_marketlog.py`): 290 total.
+
+### Added (earlier unreleased rounds)
 - **Machine-checked docs truth** (round 18, the wave-1 diligence top
   one): `scripts/check_docs.py` + `make truth` + a CI step. Version
   coherence (CHANGELOG's newest numbered section must equal pyproject's

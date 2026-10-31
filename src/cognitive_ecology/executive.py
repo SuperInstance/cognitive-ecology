@@ -78,12 +78,14 @@ class Executive:
                  max_actions: int = 3,
                  arbiter: Optional[Callable[[List[AttentionBid], int],
                                             List[AttentionBid]]] = None,
-                 scorecard=None) -> None:
+                 scorecard=None,
+                 market_log=None) -> None:
         self.market = market
         self.bus = bus
         self.max_actions = max_actions
         self.arbiter = arbiter
         self.scorecard = scorecard
+        self.market_log = market_log  # read model (round 21); never consulted
         self.last_clear: Optional[ClearResult] = None
         self.last_divergence = 0
         self.arbiter_calls = 0
@@ -188,6 +190,15 @@ class Executive:
                 )
                 seq = ev.seq
             decisions.append(Decision(bid=b, status=status, event_seq=seq))
+
+        # the observation boundary (round 21): serialize this clearing —
+        # the exact bids, the exact floats, the executive's own verdicts.
+        # Read-model discipline: written after every decision is final,
+        # never consulted by any decision, deletable without loss.
+        if self.market_log is not None:
+            self.market_log.note_clear(
+                ts, result, decisions, self.last_arbiter_context,
+            )
         return decisions
 
     # ------------------------------------------------------------------

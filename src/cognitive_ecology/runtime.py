@@ -50,6 +50,7 @@ from .audit import ConservationAuditor
 from .calibration import CalibrationLog
 from .events import Event, EventBus, EventKind
 from .executive import ArbiterContext, Executive
+from .marketlog import MarketLog
 from .graph import WorldGraph
 from .identity import Identity
 from .memory import Memory
@@ -174,7 +175,14 @@ class Runtime:
         self.graph = WorldGraph()
         self.tensions = TensionField()
         self.market = AttentionMarket()
-        self.executive = Executive(self.market, bus=self.bus, max_actions=top_k)
+        # the observation boundary (round 21): exact, non-perturbing,
+        # deletable — see marketlog.py. Not organism state: a loaded
+        # organism starts a fresh log (observation history is the host's).
+        self.market_log = MarketLog()
+        self.executive = Executive(
+            self.market, bus=self.bus, max_actions=top_k,
+            market_log=self.market_log,
+        )
         self.ecology = ScriptEcology(bus=self.bus, rng=random.Random(seed + 1))
         self.memory = Memory(self.graph)
         self.sleeper = SleepCycle(
@@ -549,7 +557,11 @@ class Runtime:
             state["ecology"], bus=rt.bus, rng=random.Random(state["seed"] + 1)
         )
         rt.memory = Memory(rt.graph)
-        rt.executive = Executive(rt.market, bus=rt.bus, max_actions=rt.top_k)
+        rt.market_log = MarketLog()
+        rt.executive = Executive(
+            rt.market, bus=rt.bus, max_actions=rt.top_k,
+            market_log=rt.market_log,
+        )
         rt.sleeper = SleepCycle(
             rt.ecology, rt.memory, bus=rt.bus,
             rng=random.Random(state["seed"] + 2),

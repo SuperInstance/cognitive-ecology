@@ -60,16 +60,17 @@ This file is for finding things fast.
 | `docs/06_agents_and_providers.md` | models as citizens; caching economics |
 | `docs/07_playbook.md` | play-testing method + findings log |
 | `docs/08_decision_models.md` | decision-model synergy + experiments |
+| `docs/09_market_log.md` | the observation read model + run provenance |
 | `docs/tutorials/tutorial_01_first_world.md` | build a lighthouse keeper |
 | `docs/tutorials/tutorial_02_script_ecology.md` | birth, starvation, death, dreams |
 | `docs/tutorials/tutorial_03_attention_market.md` | controlled experiments on the factors |
 | `docs/tutorials/tutorial_04_llm_agents_and_caching.md` | LLM citizens + the caching game |
-| `docs/ADRs/` | 14 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment, the ballast) |
+| `docs/ADRs/` | 15 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment, the ballast, the read model) |
 
 ## The v0.1 research line (`src/ecology/` — kept as provenance)
 
 A parallel implementation from an earlier line of work; installed and
-tested alongside the kernel (81 of the 273 tests). Preserved intact.
+tested alongside the kernel (81 of the 290 tests). Preserved intact.
 
 | Path | What it is |
 |---|---|

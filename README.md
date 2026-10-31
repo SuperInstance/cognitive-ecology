@@ -7,7 +7,7 @@ not kings.
 
 ```
 Python >= 3.10  ·  zero runtime dependencies  ·  zero LLM required to run
-273 tests       ·  deterministic (seeded)     ·  MIT license
+290 tests       ·  deterministic (seeded)     ·  MIT license
 ```
 
 ---
@@ -208,7 +208,8 @@ discipline and journals the results).
 | [docs/06_agents_and_providers.md](docs/06_agents_and_providers.md) | LLMs as citizens + caching economics |
 | [docs/07_playbook.md](docs/07_playbook.md) | how to play-test (and what play-testing found) |
 | [docs/08_decision_models.md](docs/08_decision_models.md) | typed-decision synergy + experiment plan |
-| [docs/ADRs/](docs/ADRs/) | 14 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment, the ballast) |
+| [docs/09_market_log.md](docs/09_market_log.md) | the observation boundary: watching an organism think (read model, manifests, sweeps) |
+| [docs/ADRs/](docs/ADRs/) | 15 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment, the ballast, the read model) |
 | [docs/tutorials/](docs/tutorials/) | four hands-on tutorials (first world → LLM agents) |
 | `make truth` (`scripts/check_docs.py`) | machine-checked doc counts — drift fails the build |
 
@@ -269,9 +270,9 @@ cognitive-ecology/
 ├── experiments/                 minimal_world.py + dogfood/ artifacts
 ├── examples/                    eight runnable organisms
 ├── templates/                   agent template + play-test scenario template
-├── docs/                        8 guides + 4 tutorials
+├── docs/                        9 guides + 4 tutorials
 ├── scripts/                     run_rounds.py (telemetry), ideate.py (dogfood)
-├── tests/                       273 tests incl. conservation storms
+├── tests/                       290 tests incl. conservation storms
 ├── bootstrap.sh                 create the GitHub repo + first push (PAT via env)
 ├── Makefile                     setup / test / world / examples / guard
 └── .github/workflows/ci.yml     test matrix + secret scan
@@ -309,7 +310,7 @@ This tree carries two implementations of the same manifesto:
   receipts (`library/rounds/` — including a devil's-advocate round).
 
 Both packages install from this repo and both test suites run green
-together (`pytest tests/` → 273 passing: 192 from the kernel, 81
+together (`pytest tests/` → 290 passing: 209 from the kernel, 81
 from the v0.1 line). New work should target `cognitive_ecology`; the
 v0.1 line is preserved as research history.
 
@@ -325,7 +326,7 @@ outcomes — miscalibrated or value-destroying judgment is benched with
 a receipt), and **journal compaction** (the replay basis without the
 ballast — flat verify cost at any horizon, every compaction
 receipted and chain-covered). Soak-proven at 10,000 ticks; society
-soak at 6,000 ticks across three organisms; 273 tests.
+soak at 6,000 ticks across three organisms; 290 tests.
 
 v0.3.0 — the economics of persistence: liveness as a subscription
 (re-attestation, lapse, parole on revival), conservation as a receipt
