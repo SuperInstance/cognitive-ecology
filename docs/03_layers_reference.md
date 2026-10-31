@@ -215,6 +215,39 @@ event) that must survive tomorrow's market on its own merits.
 
 ---
 
+## L9 — Society (`society.py`, v0.4 / ADR-0011)
+
+**Purpose:** WHY federation across organisms. A **treaty** is a foreign
+purpose reference — beneficiary A's node served by provider B's node —
+and the **exchange** routes attestation between their books: when B
+stamps B's provider chain, the society re-stamps A's beneficiary chain
+with provenance `treaty:<id>`. A's own re-attestation economics does
+the enforcing (freshness decay → weaker bids → lapse), so a neglected
+delegation strangulates *softly* on A's books, while a provider death
+propagates *hard* (the `question()` transition + exchange receipts +
+treaty broken).
+
+```python
+from cognitive_ecology import Society
+
+soc = Society()
+soc.join(rt_a, name="A")           # join order = lockstep tick order
+soc.join(rt_b, name="B")
+soc.establish_treaty("B", "why:serve", "A", "why:index",
+                     "A's index freshness is served by B's archive")
+soc.run(100)                        # lockstep ticks + exchange each step
+receipt = soc.audit()               # do these books agree?
+```
+
+**Invariants:** treaties are append-only (active → broken/revoked,
+never back, never deleted); a treaty is active only while both
+endpoints are ALIVE; at most one active sole treaty per beneficiary
+node; every treaty-provenance stamp on a beneficiary's journal must be
+derivable from the provider's journal at the same tick (forged service
+is detectable); delegation flows one hop per exchange (cycle-safe).
+
+---
+
 ## Cross-cutting
 
 - **`tension.py`** — drives: `add(name, growth)`, `tick()` (grow),

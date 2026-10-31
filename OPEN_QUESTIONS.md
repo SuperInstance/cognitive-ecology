@@ -26,10 +26,18 @@ kernel, ordered roughly by how soon it blocks somebody.
    budget-triggered sleep (event log growth), or both. What are the
    right triggers, and what consolidates best during replay?
 
-5. **Multi-organism societies.** Nothing here addresses
-   organism-to-organism protocols. SIGNAL events between components are
-   intra-organism only. A society needs its own conservation laws
-   (whose WHY wins when organisms disagree?).
+5. **Multi-organism societies.** **Advanced (v0.4, ADR-0011):** the
+   first society mechanic is the TREATY — a foreign purpose reference
+   (A's node served by B's node) that routes attestation across
+   organisms. Service keeps A's books fresh through A's own
+   re-attestation economics; a provider's death propagates HARD
+   (question, exchange receipt, treaty broken) while neglect propagates
+   SOFT (A's own reaper). The federation auditor makes forged service
+   and missed propagations detectable. Open remainder: cross-organism
+   attention markets (treaties move attestation, not bids), full
+   society replay equivalence (recomputing the exchange from both
+   bases), and the original question in its sharpest form — whose WHY
+   wins when organisms *disagree*, not merely when one dies.
 
 6. ~~**Honest archival.**~~ **CLOSED (v0.3, ADR-0010):** cold storage
    with conservative eligibility, balanced books, manifest biographies

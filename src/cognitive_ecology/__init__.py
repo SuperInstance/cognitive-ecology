@@ -31,6 +31,10 @@ from .simulations import Forecast, Simulator
 from .identity import Commitment, Identity
 from .sleep import SleepCycle, SleepStats
 from .runtime import Component, Runtime, TickReport, WorldSnapshot
+from .society import (
+    BROKEN, REVOKED, ACTIVE, ExchangeRecord, FederationAuditor,
+    FederationReceipt, Society, Treaty,
+)
 
 __version__ = "0.3.0"
 
@@ -44,4 +48,6 @@ __all__ = [
     "SleepStats", "Tension", "TensionField", "TickReport", "WalkResult",
     "WhyNode", "WhyState", "WhyTree", "WhyVerdict", "WorldGraph",
     "WorldSnapshot",
+    "ACTIVE", "BROKEN", "REVOKED", "ExchangeRecord", "FederationAuditor",
+    "FederationReceipt", "Society", "Treaty",
 ]

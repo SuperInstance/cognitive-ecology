@@ -210,6 +210,25 @@ class WhyTree:
                 )
         return node
 
+    def question(self, nid: str, reason: str, tick: int = 0) -> WhyNode:
+        """ALIVE -> UNKNOWN: doubt arrived from OUTSIDE the organism.
+
+        This is the external-doubt transition — the mirror of revive().
+        The runtime itself never calls it; it exists for society-level
+        organs (society.py, ADR-0011) to record that the basis of a
+        purpose changed somewhere else: a treaty partner died, a
+        federation auditor challenged the lineage. Like a lapse, it
+        questions the node itself without cascading — descendants stay
+        formally alive but verdict-blocked, and ``contradictions()``
+        will find them. Like everything else: recorded, never deleted,
+        revivable by an explicit ``revive(reason)``.
+        """
+        node = self._nodes[nid]
+        if node.state is not WhyState.ALIVE:
+            return node  # already questioned or dead: nothing to doubt
+        self._record(node, WhyState.UNKNOWN, reason, tick)
+        return node
+
     def revive(self, nid: str, reason: str = "rejustified", tick: int = 0) -> WhyNode:
         """UNKNOWN -> ALIVE. Questionable purposes may be re-justified.
 

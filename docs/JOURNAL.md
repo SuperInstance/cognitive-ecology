@@ -334,3 +334,46 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   "green"; (2) YAML edits go through a parser check in the same command
   that writes them; (3) release tags point only at commits whose CI is
   green. The v0.3.0 tag now sits on the verified-green `a7789e3` line.
+
+## 2026-11-01 — session four: the v0.4 frontier opens
+
+### Round 10 — society-basis: purpose that crosses organisms (ADR-0011)
+
+- **The design in one sentence**: treaties route attestation, and the
+  v0.3 economics does the enforcing. A treaty is a foreign purpose
+  reference — A's node served by B's node — and when B's runtime stamps
+  B's provider chain, the society re-stamps A's beneficiary chain *on
+  A's own books* with provenance `treaty:<id>`. Nothing else needed to
+  change: freshness, lapse, parole, and the conservation auditor all
+  compose with routed stamps for free, because a routed stamp IS a
+  stamp.
+- **Death vs neglect, hard vs soft**: B's provider purpose dying
+  (DEAD or UNKNOWN transition) breaks the treaty and QUESTIONS A's
+  node — the new `question()` transition (ALIVE→UNKNOWN, recorded, no
+  cascade, revivable) — but only when the treaty was the node's sole
+  basis. B merely going quiet propagates through A's own reaper: the
+  stamps stop, the freshness decays, A's horizon does the rest. Known
+  broken is not doubtful; the UNKNOWN epistemology now spans organisms.
+- **The pinning test is green**: "A's purpose served only by B lapses
+  when B dies, with an exchange receipt on A's books" — exactly as the
+  round-009 adoption note demanded, plus the receipts: the question
+  record names the treaty, an EXCHANGE event lands on both buses, and
+  A's own conservation receipt still replays.
+- **The federation auditor** lifts ADR-0008 one level: not "do these
+  books replay" but "do these books AGREE." Forged service (a
+  treaty-provenance stamp with no matching provider stamp at that tick)
+  and missed propagations (an active treaty with a dead endpoint) are
+  both caught and pinned by test.
+- **Found while testing — the cursor bug**: the exchange originally
+  advanced its journal cursors to the full log length, which included
+  the stamps it had just routed — delegated service was consumed
+  instead of flowing onward, and delegation chains (C serves B serves
+  A) silently died after one hop. The fix (cursors advance by exactly
+  the frozen slice length) makes one-hop-per-exchange a real invariant
+  rather than a docstring claim, and keeps cycles safe by construction.
+- **Also found**: a sole treaty breaking questions A's node, so
+  re-establishing requires A's `revive()` ceremony first —
+  UNKNOWN-washing now applies to treaties, not just purposes. Pinned.
+- Kernel surface: one transition (`question`), one event kind
+  (`EXCHANGE`), one new module (`society.py`, zero new deps). 198
+  tests green (19 new).

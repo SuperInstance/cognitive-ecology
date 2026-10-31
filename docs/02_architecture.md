@@ -39,6 +39,9 @@ worth internalizing before reading further.
 
 ```
             ┌────────────────────────────────────────────┐
+   L9       │  Society — treaties + the exchange          │   society.py
+            │  + the federation auditor (v0.4)            │
+            ├────────────────────────────────────────────┤
    L8       │  Sleep & Dreams — replay, prune, mutate     │   sleep.py
             ├────────────────────────────────────────────┤
    L7       │  Identity — the slowly-drifting self        │   identity.py

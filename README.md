@@ -197,7 +197,7 @@ discipline and journals the results).
 | [docs/06_agents_and_providers.md](docs/06_agents_and_providers.md) | LLMs as citizens + caching economics |
 | [docs/07_playbook.md](docs/07_playbook.md) | how to play-test (and what play-testing found) |
 | [docs/08_decision_models.md](docs/08_decision_models.md) | typed-decision synergy + experiment plan |
-| [docs/ADRs/](docs/ADRs/) | 10 architecture decision records (the law, the economics, the proofs) |
+| [docs/ADRs/](docs/ADRs/) | 11 architecture decision records (the law, the economics, the proofs, the society) |
 | [docs/tutorials/](docs/tutorials/) | four hands-on tutorials (first world → LLM agents) |
 
 ## FAQ (read this if you read nothing else)
@@ -303,17 +303,22 @@ tie-breaking for calibrated decision models, and a calibration log that
 measures who is confidently wrong. Soak-proven at 10,000 ticks.
 
 The v0.4 frontier (from live ideation round 009, see
-[library/rounds/](library/rounds/)):
+[library/rounds/](library/rounds/)) — item 1 landed as ADR-0011:
 
-1. **SOCIETY-BASIS** — cross-organism WHY federation: foreign purpose
-   references, a necrology exchange, a federation auditor; justification
-   becomes weakest-link across organisms (A's purpose served only by B
-   lapses when B dies — with an exchange receipt on A's books).
+1. **SOCIETY-BASIS** — **SHIPPED (ADR-0011):** treaties are foreign
+   purpose references that route attestation between organisms;
+   service keeps the beneficiary's books fresh through its own
+   re-attestation economics; provider death propagates hard (question
+   + exchange receipt), neglect propagates soft (the beneficiary's own
+   reaper); the federation auditor detects forged service and missed
+   propagations; delegation chains flow one hop per exchange.
 2. **WHY-DAG** — multi-parent purpose: `PurposeNode(parents)`,
    topological replay, any-served-parent semantics.
 3. **OUTCOME-ARBITER** — score the delegated tie-break by realized
    outcomes, not just divergence counts; paid judgment must earn its
    keep.
+4. **Journal compaction** — per-epoch rolling digests for the growing
+   attestation journal (OPEN_QUESTIONS #13).
 
 See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full ledger.
 

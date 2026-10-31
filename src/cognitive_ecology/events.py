@@ -22,6 +22,9 @@ Payload conventions used across the kernel
 * ``DECISION`` -> (label, src, status, attention)  the executive spoke
 * ``WHY``      -> (node_id, from, to, reason)      purpose changed state
 * ``BIRTH`` / ``DEATH`` -> (script_name, why_node, detail)
+* ``EXCHANGE`` -> (treaty_id, what, provider, beneficiary, detail)
+  society-level receipts: service routed between organisms, treaties
+  established / broken / revoked (society.py, ADR-0011)
 """
 from __future__ import annotations
 
@@ -42,6 +45,7 @@ class EventKind(IntEnum):
     BIRTH = 8      # a script was spawned into the ecology
     DEATH = 9      # a script starved out (necrology entry follows)
     ERROR = 10     # something failed; the organism continues
+    EXCHANGE = 11  # a treaty routed something between organisms (society.py)
 
 
 @dataclass(frozen=True, slots=True)
