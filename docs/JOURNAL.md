@@ -415,3 +415,34 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   a competitor's purpose with a legitimate-looking record. Provenance
   vs capabilities vs trust: a real design question, honestly asked.
 - 202 tests green (4 new); guard clean; round receipt committed.
+
+### Round 12 — example 08: the society as a story (and what the story found)
+
+- **The new mechanic became the eighth keyless example**: three
+  organisms — a researcher leaning on two archives — living the whole
+  life of a delegation. ACT 1 the treaty works (service lands on A's
+  books with provenance `treaty:1`); ACT 2 neglect is soft (B goes
+  quiet, nobody dies, A's own reaper lapses the node — the receipt is
+  a Lapse record, doubt that grew at home); ACT 3 death is hard (C's
+  provider purpose killed; same step: treaty broken, A's node
+  questioned, receipt naming treaty + cause + doubter); ACT 4 every
+  receipt verifies — per-organism conservation AND the federation's
+  books-agree check, with the append-only treaty ledger showing
+  broken-is-forever.
+- **The play-test caught a real cross-layer bug on its first run** —
+  the repo's thesis doing its job. The conservation auditor's replay
+  ordered same-tick entries as stamps-before-transitions (correct for
+  the runtime's act -> stamp -> reap), but the society introduced a
+  legitimate order the replay could not express: manual revive at tick
+  t, then a treaty-routed stamp landing at the SAME tick t. The replay
+  applied the stamp while the node was still UNKNOWN -> false
+  stamp_validity failure. 202 tests had not covered it; one narrative
+  example did.
+- **The fix is a three-phase equal-tick ordering in the replay**:
+  to-ALIVE transitions (phase 0) -> stamps (phase 1) -> all other
+  transitions (phase 2). This matches every real order in both layers,
+  including the exchange's break-then-route (a questioned node REFUSES
+  its stamp, so a stamp never follows its own question — the ordering
+  is total, not heuristic). Pinned by a focused regression test.
+- 203 tests green; example 08 in the README table; ADR-0011's replay
+  semantics note updated.

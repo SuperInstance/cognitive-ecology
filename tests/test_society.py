@@ -504,3 +504,35 @@ def test_question_records_the_doubter():
     rt2 = _beneficiary()
     rt2.why.question("why:index", "anonymous doubt", tick=1)
     assert rt2.why.necrology()[-1].reason == "anonymous doubt"
+
+
+# ---------------------------------------------------------------------------
+# round 012: the play-test bug — same-tick revive + routed stamp
+# ---------------------------------------------------------------------------
+
+def test_same_tick_revive_then_routed_stamp_replays():
+    """Found by the example-08 play-test: a manual revive at tick t
+    followed by a treaty-routed stamp at the SAME tick made the
+    conservation auditor's replay apply the stamp while the node was
+    still UNKNOWN (its equal-tick rule was stamps-before-transitions).
+    The replay now orders to-ALIVE transitions before same-tick stamps.
+    """
+    a, b = _beneficiary(), _provider()
+    soc = _society(a, b)
+    soc.run(10)
+    b.component("B.server").on = False
+    soc.run(80)  # A's reaper lapses why:index (horizon 40)
+    assert a.why.node("why:index").state is WhyState.UNKNOWN
+    # revive at tick t, then a treaty stamp lands at the same tick t:
+    # the exchange routes B's stamp from step t onto the revived node
+    b.component("B.server").on = True
+    a.why.revive("why:index", "try again", tick=91)
+    # establish a fresh treaty (the old one broke with the lapse) and
+    # let one step route a stamp at ts=92... but the sharp case is the
+    # stamp whose ts EQUALS the revive tick, so stamp directly the way
+    # the exchange would:
+    a.why.stamp_chain("why:index", 91, by="treaty:9")
+    receipt = ConservationAuditor().verify(a.why)
+    assert receipt.ok, receipt.summary()
+    # and the node took the stamp (it was ALIVE post-revive)
+    assert a.why.node("why:index").last_beat == 91

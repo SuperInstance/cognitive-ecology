@@ -184,6 +184,7 @@ discipline and journals the results).
 | [05_personal_journal](examples/05_personal_journal/) | memory that finds the story, not the string | `python examples/05_personal_journal/main.py` |
 | [06_attestation_economy](examples/06_attestation_economy/) | use it or lose it: served vs unserved purpose, lapse, parole | `python examples/06_attestation_economy/main.py` |
 | [07_audit_and_archive](examples/07_audit_and_archive/) | tamper with history and get caught; cold storage that is not deletion | `python examples/07_audit_and_archive/main.py` |
+| [08_society](examples/08_society/) | delegated purpose: treaties, soft neglect, hard death, federation receipts | `python examples/08_society/main.py` |
 
 ## Documentation
 

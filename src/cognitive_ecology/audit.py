@@ -82,12 +82,16 @@ class ConservationAuditor:
     def replay(self, genesis, necrology, journal):
         """Reconstruct (nodes, problems) from the basis alone.
 
-        The basis is replayed CHRONOLOGICALLY: necrology records and
-        journal stamps are merged on a single timeline (at equal ticks,
-        stamps apply before transitions, matching the runtime's per-tick
-        order: act -> stamp -> reap). Transitions apply in their LISTED
-        order — an append-only log is chronological by construction, so a
-        reordered history fails the log_order or transition_validity check.
+        The basis is replayed CHRONOLOGICALLY on a single timeline with
+        three phases at equal ticks (the example-08 play-test fix):
+        to-ALIVE transitions first (a same-tick revive precedes the
+        treaty-routed stamp that lands on the revived node), then
+        stamps, then all other transitions (the runtime's per-tick
+        order: act -> stamp -> reap; a questioned node refuses its
+        stamp, so a stamp never follows its own question). Transitions
+        apply in their LISTED order — an append-only log is
+        chronological by construction, so a reordered history fails the
+        log_order or transition_validity check.
 
         problems is a list of (check_name, detail) — empty means the log
         itself is internally consistent.
@@ -114,9 +118,22 @@ class ConservationAuditor:
                     "history was reordered"))
             last_tick = rec.tick
 
+        # three-phase equal-tick ordering (found by the example-08
+        # play-test): a to-ALIVE transition at tick t applies BEFORE
+        # stamps at t — a same-tick revive() must be on the books
+        # before a treaty-routed stamp lands on the revived node
+        # (society.py revives, then the exchange routes service).
+        # All OTHER transitions apply AFTER stamps at the same tick —
+        # the runtime's per-tick order is act -> stamp -> reap, and the
+        # exchange's order is break-then-route, where a questioned node
+        # REFUSES its stamp (heartbeat on non-ALIVE writes no journal
+        # entry), so a stamp never follows its own question.
+        def _phase(rec) -> int:
+            return 0 if rec.to_state is WhyState.ALIVE else 2
+
         timeline = sorted(
-            [(r.tick, 1, i, ("t", r)) for i, r in enumerate(necrology)]
-            + [(j[0], 0, i, ("j", j)) for i, j in enumerate(journal)],
+            [(r.tick, _phase(r), i, ("t", r)) for i, r in enumerate(necrology)]
+            + [(j[0], 1, i, ("j", j)) for i, j in enumerate(journal)],
             key=lambda x: (x[0], x[1], x[2]),
         )
         for _tick, _kind, _i, (what, item) in timeline:
