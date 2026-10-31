@@ -30,7 +30,7 @@ jobs:
       - name: Re-attestation economics experiment
         run: python experiments/reattestation_economics.py > /dev/null
       - name: Soak smoke (invariants under load)
-        run: python experiments/soak.py --ticks 1500 > /dev/null
+        run: python experiments/soak.py --ticks 1500 --horizon 200 > /dev/null
 
       - name: Examples run keyless
         run: |
