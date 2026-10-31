@@ -32,18 +32,24 @@ from ecology.llm.typesafe import TypeSafeClient  # noqa: E402
 
 MODEL = "ByteDance/Seed-2.0-mini"
 
-SYSTEM = """You are the devil's advocate of a research program on a persistent cognitive ecology (WHY = live justification as conservation law; runtime, attention economy, script ecology, sleep consolidation, world graph, LLM teachers).
-
-Your job is iterative: propose concretely, then attack your own proposal on its counter-logic, then repair or replace it. Every iteration must end with either a SHARPER proposal or an honest retraction. Format each iteration as: PROPOSAL / ATTACK / REPAIR (three short sections, <= 220 words total)."""
+SYSTEM = (
+    "You are the devil's advocate of a research program on a persistent cognitive "
+    "ecology (WHY = live justification as conservation law; runtime, attention "
+    "economy, script ecology, sleep consolidation, world graph, LLM teachers).\n\n"
+    "Your job is iterative: propose concretely, then attack your own proposal on "
+    "its counter-logic, then repair or replace it. Every iteration must end with "
+    "either a SHARPER proposal or an honest retraction. Format each iteration as: "
+    "PROPOSAL / ATTACK / REPAIR (three short sections, <= 220 words total)."
+)
 
 START = (
-    "The program's history left three abandoned jewels: (1) reasoning compression — "
-    "'reduce the amount of reasoning that must occur at all', measurable in tokens/approvals; "
-    "(2) proof-carrying intent — every decision object carries its proof, authority, "
-    "constraints, justification; (3) necessity drift — 'the gradual separation between a "
-    "structure and the reason that created it'. "
-    "Propose the single most valuable v0.2 feature for the ecology that embodies one of these, "
-    "naming the module it lands in."
+    "The program's history left three abandoned jewels: (1) reasoning compression "
+    "— 'reduce the amount of reasoning that must occur at all', measurable in "
+    "tokens/approvals; (2) proof-carrying intent — every decision object carries "
+    "its proof, authority, constraints, justification; (3) necessity drift — 'the "
+    "gradual separation between a structure and the reason that created it'. "
+    "Propose the single most valuable v0.2 feature for the ecology that embodies "
+    "one of these, naming the module it lands in."
 )
 
 ITERATE = (
@@ -65,12 +71,19 @@ def main() -> int:
 
     prompt = stable + f"\n\nITERATION 1 — your opening move:\n{START}"
     for i in range(1, 4):
-        spec = PromptSpec(stable_prefix=prompt, variable_suffix="Write iteration now.", max_tokens=700, temperature=0.8)
+        spec = PromptSpec(
+            stable_prefix=prompt,
+            variable_suffix="Write iteration now.",
+            max_tokens=700,
+            temperature=0.8,
+        )
         response = chat.complete(spec, MODEL, role="devils-advocate")
         cost += response.usage.cost_usd or 0.0
         history.append(response.text.strip())
-        print(f"iteration {i}: {response.latency_ms}ms, {response.usage.prompt_tokens}in "
-              f"({response.usage.cached_tokens} cached)")
+        print(
+            f"iteration {i}: {response.latency_ms}ms, "
+            f"{response.usage.prompt_tokens}in ({response.usage.cached_tokens} cached)"
+        )
 
         if i == 3:
             break
@@ -94,14 +107,19 @@ def main() -> int:
             role="devils-advocate-gate",
         )
         steer = gate.answers["steer"].value
-        decisions.append({"iteration": i, "steer": steer, "concrete": gate.answers["concrete"].value})
+        decisions.append(
+            {"iteration": i, "steer": steer, "concrete": gate.answers["concrete"].value}
+        )
         cost += gate.usage.cost_usd or 0.0
         print(f"  gate: steer={steer} concrete={gate.answers['concrete'].value}")
 
         if isinstance(steer, tuple) and steer[0] == "pivot":
             nudge = "PIVOT: the gate says attack a different jewel now."
         elif isinstance(steer, tuple) and steer[0] == "retract":
-            nudge = "RETRACT: the gate says your proposal is broken — restart from your own strongest critique."
+            nudge = (
+                "RETRACT: the gate says your proposal is broken — "
+                "restart from your own strongest critique."
+            )
         else:
             nudge = ITERATE
         prompt = (
@@ -129,7 +147,10 @@ def main() -> int:
         lines.append("## Decision gates (jev)")
         lines.append("")
         for d in decisions:
-            lines.append(f"- after iteration {d['iteration']}: steer={d['steer']} concrete={d['concrete']}")
+            lines.append(
+                f"- after iteration {d['iteration']}: "
+                f"steer={d['steer']} concrete={d['concrete']}"
+            )
         lines.append("")
     lines.append(f"---\n*Recorded cost: ${cost:.6f}*")
 

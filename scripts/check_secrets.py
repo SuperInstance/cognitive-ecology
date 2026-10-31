@@ -39,7 +39,8 @@ def main() -> int:
     bad: list[tuple[str, str]] = []
     for path in files:
         try:
-            text = open(path, encoding="utf-8", errors="ignore").read()
+            with open(path, encoding="utf-8", errors="ignore") as handle:
+                text = handle.read()
         except OSError:
             continue
         for pattern in PATTERNS:

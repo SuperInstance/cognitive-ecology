@@ -24,71 +24,78 @@ sleep — not a subsystem, the law the whole organism runs under.
 4. **LLMs are teachers, not workers.** The runtime must mostly work without
    them. Models edit the organism; they do not impersonate it.
 
-## The stack
+## The stack — as built
 
-| Layer | Law / role | Module | Status |
-|---|---|---|---|
-| L0 Runtime | long-lived processes, ticks, budgets | `ecology.runtime` | planned |
-| L1 Event Fabric | tiny typed messages, publish-only | `ecology.events` | planned |
-| L2 World State Graph | typed, addressable objects (the MUD) | `ecology.world` | planned |
-| L3 Simulated Futures | budgeted scenario projection | `ecology.sim` | planned |
-| L4 Script Ecology | deterministic skills with cost/utility | `ecology.scripts` | planned |
-| L6 **WHY graph** | **justification as conservation law** | `ecology.why` | **ported, 39 tests green** |
-| Attention economy | market + governance hybrid | `ecology.attention` | planned |
-| Sleep | consolidation: observation → routine | `ecology.sleep` | planned |
-| LLM teachers | multi-provider panel (decision models!) | `ecology.llm` | planned |
+| Layer | Module | Status |
+|---|---|---|
+| L0 Runtime (processes, ticks, budgets) | `ecology.runtime` | built |
+| L1 Event Fabric (tiny messages, publish-only) | `ecology.events` | built |
+| L2 World State Graph (typed objects, SQLite) | `ecology.world` | built |
+| L3 Simulated Futures (budgeted, priority-gated) | `ecology.sim` | built (minimal) |
+| L4 Script Ecology (candidate→active→retired) | `ecology.scripts` | built |
+| L6 **WHY kernel** (v0.2 semantics) | `ecology.why` | **built — golden-corpus-equivalent to the Rust reference** |
+| Attention economy (market/central/hybrid) | `ecology.attention` | built |
+| Tension field (prediction error compounds) | `ecology.tension` | built |
+| Sleep (mechanical consolidation, zero LLMs) | `ecology.sleep` | built (v1) |
+| Identity (persistent preference attractor) | `ecology.identity` | built (minimal) |
+| Morning briefing | `ecology.briefing` | built (minimal) |
+| LLM teachers (7-model panel + Jev decisions) | `ecology.llm`, `ecology.research` | built |
+| Developmental biology / exocortex evolution | — | next |
 
-## The WHY kernel (done first, deliberately)
+Full map with semantics notes: `docs/ARCHITECTURE.md`.
 
-`ecology.why` is a faithful Python port of
-[why-core v0.2](https://github.com/SuperInstance/why) — same two-file format,
-same four statuses, same 15-pair golden corpus (copied verbatim into
-`tests/corpus/`), including both external-audit fixes: explicit-only liveness
-and full-depth deadness propagation.
-
-```text
-graph.txt                          att.txt
-role:analyst -> project:active     project:active alive 2024-01-01 casey
-workflow:deploy -> project:active (inferred)
-```
-
-- `role:analyst` → **alive** (explicit path to a live root)
-- `workflow:deploy` → **unknown** (inferred edges are candidates, never verdicts)
-- if `project:active` dies → `role:analyst` → **dead** at any depth
-
-`unknown` never fails a build; `dead` always does. Anything that can silently
-convert dead into unknown is the dangerous direction and gets golden pairs
-first.
+## Quickstart
 
 ```bash
 pip install -e .[dev]
-pytest                      # 39 tests, 15 golden pairs vs the Rust reference
+pytest                     # 99 tests, including the 15 golden corpus pairs
+ecology week               # the manifesto's core experiment, live
+ecology check graph.txt --alive att.txt   # WHY flashlight, Rust-CLI compatible
+ecology panel --topic "..." --context doc.md --rounds 2   # live multi-model round
+ecology usage              # provider cost report
 ```
 
-## Why Python here, Rust there
+## The week in a box
 
-The Rust `why` stays the reference CLI: a stateless flashlight, git-as-store,
-exit codes for CI. The ecology needs WHY *in-process*, consulted every tick
-by the scheduler — a pure function call, not a subprocess. Two bodies, one
-law, one corpus keeping them honest.
+The manifesto's core question made executable — *the smallest persistent
+world that can improve itself while nobody is watching*:
 
-## Repository map
+```
+observations compiled into routines by sleep: 4 scripts born, 332 observations handled
+scripts promoted to active: 4 (cpu, disk, net, anomaly routines)
+scripts retired by their own utility: 5
+tensions raised (novelty encountered): 8
+justifications broken: 8        <- a root goal killed on day 4; nothing deleted
+total learned utility: 10.88    <- with ZERO LLM calls
+```
 
-- `src/ecology/why/` — the justification kernel (port complete)
-- `library/` — the knowledge library: originals, research, discussion rounds,
-  reflections, open questions (grows every round)
-- `docs/` — manifesto, architecture, ADRs, journal (the process is a product)
-- `tests/corpus/` — the golden equivalence pairs shared with the Rust repo
+## The knowledge library
+
+`library/` holds the cumulative record: the original manifesto, the external
+audit this kernel inherits its fixes from, provider research, the crown-question
+reflection, the open-questions ledger (all ten manifesto questions now have
+probes or running code), and the live panel rounds — every turn a receipt
+with provider, model, latency, tokens, cached tokens, and cost.
+
+- `001` — *Is WHY truly the conservation law?* (7 models + jev gates, $0.064)
+- `002` — *Does week-in-a-box support or falsify the hypothesis?* ($0.050)
+- `003` — *Devil's-advocate loop* (Seed-2.0-mini iterating on itself, jev-steered, $0.002)
+
+## Process as product
+
+`docs/JOURNAL.md` is the build log (what failed and what it taught),
+`docs/PROCESS.md` the operating manual, `docs/ADRs/` the decisions with
+reversal conditions, `docs/PROVIDERS.md` observed provider behavior
+(including the MiniMax key outage, documented honestly).
 
 ## Lineage
 
-1. A 24k-line conversation: compiler fork → semantic CRDT → intent compiler →
-   **why** (see `library/originals/` for the digests).
+1. A 24k-line conversation: compiler fork → semantic CRDT → intent compiler → **why**.
 2. `why` v0.1 → external audit → v0.2 (format spec, mortality, coverage).
-3. **This repo**: WHY as the conservation law of a persistent cognitive
-   ecology — the architecture in `docs/MANIFESTO.md`.
+3. **This repo**: WHY as the conservation law of a persistent cognitive ecology.
 
 ## Status
 
-v0.1.0 — kernel port complete and verified against the golden corpus. The
-organism grows layer by layer; every round is documented in `docs/JOURNAL.md`.
+v0.1.0 — kernel port verified against the golden corpus; all ecology layers
+built and tested; three live panel rounds in the library; the experiment
+running. The organism grows layer by layer; every round is documented.
