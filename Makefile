@@ -24,6 +24,10 @@ examples:
 		echo "ok"; \
 	done
 
+## attest: the re-attestation economics experiment (use it or lose it)
+attest:
+	python experiments/reattestation_economics.py
+
 ## ideate: dogfood an ideation loop (needs DEEPINFRA_API_KEY; mock otherwise)
 ideate:
 	python scripts/ideate.py --ask-file $(or $(ASK),scripts/../experiments/dogfood/README.md) \

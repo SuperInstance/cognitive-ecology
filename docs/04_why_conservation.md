@@ -167,3 +167,46 @@ Directly: an LLM's spawned scripts carry `why_node` references. If the
 WHY chain behind an agent breaks, its scripts stop bidding — the model
 keeps talking but the organism stops *acting*. Models propose; the WHY
 tree disposes.
+
+## The re-attestation economics (v0.3)
+
+Until v0.3, one thing was free: keeping a purpose ALIVE. `heartbeat()`
+stamped `last_beat`, and nothing ever read it — liveness attested once
+stayed valid forever. "Never deleted" quietly became "never questioned".
+Live panel round 001 converged on this hole independently: without a cost
+to holding purpose, the conservation law protects hoarders.
+
+The fix is an opt-in `attestation_horizon` (ADR-0007) that makes liveness
+a **subscription**:
+
+| Mechanic | What it does |
+|---|---|
+| `stamp_chain` | Running under a purpose re-attests its whole lineage — use it. |
+| `freshness` | Weakest-link decay in `justification()` after a grace window — lose it (slowly, in the market, before anything formal happens). |
+| `reap` | ALIVE-but-unserved past the horizon flips to UNKNOWN ("lapsed") at the conservation audit — recorded in the necrology, never deleted. |
+| `revive` | Only a conscious re-justification brings a lapsed purpose back, and it buys a fresh horizon. |
+
+Two facts the play-test taught (see `experiments/reattestation_economics.py`):
+
+1. **Revival without service buys exactly one more horizon.** A purpose
+   revived but still unserved decays again and lapses again. Re-justifying
+   is a promise; the market only accepts delivery.
+2. **Economic strangulation precedes formal lapse.** An unserved purpose's
+   bid decays to zero *before* the reaper ever touches it — the market
+   squeezes unserved purposes; the kernel only records the outcome.
+
+With `attestation_horizon=None` (the default) the v0.2 semantics hold
+bit-for-bit: attest once, alive until explicitly killed.
+
+**Why is lapse per-node while kill cascades?**
+A kill says "this lineage is wrong" — everything it justified loses
+warrant at once. A lapse says "nobody served THIS purpose" — the unit of
+disuse is the purpose itself, not its children. A parent can lapse while
+a thriving child keeps running; the child's own chain freshness is what
+matters to its bids.
+
+**Doesn't the trap close? (stale chains can't run, so they can't
+re-attest themselves)**
+Yes — and that is the point. Self-re-attestation would be a purchase
+dressed as a subscription. The only way back is a conscious `revive`
+with a reason, recorded in the necrology next to the lapse it answers.

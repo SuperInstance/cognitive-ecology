@@ -16,6 +16,27 @@ contradict its purpose — but it can never *erase* its purpose. History
 stays auditable, revival stays possible, and "why did you do that?" always
 has an answer.
 
+The re-attestation economics (v0.3)
+-----------------------------------
+``never deleted'' cannot mean ``never questioned''. If liveness attested
+once stays valid forever, purpose is a purchase, not a subscription — the
+organism never has to *maintain* what it believes. So an optional
+``attestation_horizon`` makes liveness a subscription:
+
+* running under a purpose stamps heartbeats along its whole chain
+  (*use it*), transitive to the root;
+* a chain's ``justification()`` is discounted by its stalest ALIVE link
+  (weakest-link freshness) — stale purposes lose attention contention
+  before they are ever formally questioned;
+* an ALIVE node unattested for longer than the horizon *lapses* to
+  UNKNOWN (questionable — never deleted), recorded in the necrology;
+* a lapsed purpose returns only by explicit ``revive(reason)`` — a
+  conscious re-justification that buys a fresh horizon. The lapse itself
+  stays in the necrology forever.
+
+With ``attestation_horizon=None`` (the default) none of this activates:
+the v0.2 semantics — attest once, alive until explicitly killed — hold.
+
 The heartbeat question
 ----------------------
 Every tick, every component must answer ``why_should_this_run()``. A
@@ -73,9 +94,18 @@ class WhyVerdict:
 
 
 class WhyTree:
-    """The conserved purpose graph. Append-only by construction."""
+    """The conserved purpose graph. Append-only by construction.
 
-    def __init__(self) -> None:
+    ``attestation_horizon`` (optional, >= 1) activates the re-attestation
+    economics: freshness discounts, lapse-to-UNKNOWN, revive ceremony.
+    ``None`` keeps the v0.2 semantics (attest once, alive until killed).
+    """
+
+    def __init__(self, attestation_horizon: Optional[int] = None) -> None:
+        if attestation_horizon is not None and attestation_horizon < 1:
+            raise ValueError("attestation_horizon must be >= 1 (or None to disable)")
+        self.attestation_horizon = attestation_horizon
+        self.now: int = 0  # the tree's notion of 'now'; the runtime advances it
         self._nodes: dict = {}
         self._children: dict = {}
         self._necrology: list = []
@@ -228,6 +258,18 @@ class WhyTree:
             return True
         return False
 
+    def stamp_chain(self, nid: str, tick: int) -> int:
+        """Re-attest a purpose by USE: stamp every ALIVE node leaf -> root.
+
+        Serving a purpose maintains its whole lineage — a running child
+        keeps its root fresh. Returns how many nodes took the stamp.
+        """
+        took = 0
+        for n in self.chain(nid):
+            if self.heartbeat(n.id, tick):
+                took += 1
+        return took
+
     # ------------------------------------------------------------------
     # queries
     # ------------------------------------------------------------------
@@ -242,20 +284,84 @@ class WhyTree:
             cur = self._nodes[cur.parent] if cur.parent else None
         return out
 
-    def justification(self, nid: str) -> float:
+    def freshness(self, nid: str, tick: Optional[int] = None) -> float:
+        """Weakest-link freshness of the chain's ALIVE nodes, 0..1.
+
+        Full freshness through the first third of the horizon (the grace
+        window — a new purpose gets time to establish), then linear decay
+        to zero at the horizon. With no horizon configured, always 1.0.
+        """
+        if self.attestation_horizon is None:
+            return 1.0
+        t = self.now if tick is None else tick
+        h = self.attestation_horizon
+        grace = h // 3
+        worst = 1.0
+        for n in self.chain(nid):
+            if n.state is not WhyState.ALIVE:
+                continue  # non-alive links are priced by justification()
+            last = n.last_beat if n.last_beat >= 0 else n.born
+            age = max(0, t - last)
+            if age <= grace:
+                f = 1.0
+            elif age >= h:
+                f = 0.0
+            else:
+                f = 1.0 - (age - grace) / (h - grace)
+            if f < worst:
+                worst = f
+        return worst
+
+    def justification(self, nid: str, tick: Optional[int] = None) -> float:
         """How justifiable is this node's chain, 0..1.
 
         A DEAD ancestor anywhere is a hard veto (0.0) — the purpose lineage
         is broken. Otherwise the score is the fraction of the chain that is
-        ALIVE; UNKNOWN ancestors discount proportionally.
+        ALIVE (UNKNOWN ancestors discount proportionally), multiplied by
+        the chain's weakest-link FRESHNESS when re-attestation economics
+        are on: liveness attested long ago is worth less than liveness
+        maintained. Stale purposes lose contention before they lapse.
         """
+        if tick is not None:
+            self.now = tick  # explicit tick advances the tree's clock
         chain = self.chain(nid)
         if not chain:
             return 0.0
         if any(n.state is WhyState.DEAD for n in chain):
             return 0.0
         alive = sum(1 for n in chain if n.state is WhyState.ALIVE)
-        return alive / len(chain)
+        base = alive / len(chain)
+        if base <= 0.0:
+            return 0.0
+        return base * self.freshness(nid)
+
+    def reap(self, tick: Optional[int] = None) -> list:
+        """Lapse long-unattested ALIVE nodes to UNKNOWN (never deletion).
+
+        A node is lapsed when it has gone longer than the horizon without
+        a heartbeat. Lapse is per-node — an unserved purpose questions
+        ITSELF; it does not cascade like a kill (a kill says 'the lineage
+        is wrong', a lapse says 'nobody served this'). Every lapse is
+        recorded in the necrology and can only be undone by an explicit
+        ``revive(reason)``. Returns the lapsed nodes, in id order.
+        """
+        if self.attestation_horizon is None:
+            return []
+        t = self.now if tick is None else tick
+        h = self.attestation_horizon
+        lapsed = []
+        for n in sorted(self._nodes.values(), key=lambda x: x.id):
+            if n.state is not WhyState.ALIVE:
+                continue
+            last = n.last_beat if n.last_beat >= 0 else n.born
+            age = t - last
+            if age > h:
+                self._record(
+                    n, WhyState.UNKNOWN,
+                    f"lapsed: unattested for {age} ticks (horizon {h})", t,
+                )
+                lapsed.append(n)
+        return lapsed
 
     def verdict(self, nid: str) -> WhyVerdict:
         """Full answer to 'should this run?', with the blocking node named."""
@@ -320,6 +426,8 @@ class WhyTree:
     # ------------------------------------------------------------------
     def to_json(self) -> dict:
         return {
+            "attestation_horizon": self.attestation_horizon,
+            "now": self.now,
             "nodes": [
                 {
                     "id": n.id, "parent": n.parent, "statement": n.statement,
@@ -340,7 +448,8 @@ class WhyTree:
 
     @classmethod
     def from_json(cls, data: dict) -> "WhyTree":
-        tree = cls()
+        tree = cls(attestation_horizon=data.get("attestation_horizon"))
+        tree.now = data.get("now", 0)
         for nd in data["nodes"]:
             node = WhyNode(
                 id=nd["id"], parent=nd["parent"], statement=nd["statement"],

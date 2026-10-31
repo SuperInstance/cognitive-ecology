@@ -35,8 +35,16 @@ Every load-bearing claim in the docs, with its evidence:
 | 23 | All five examples run keyless | `examples/*/main.py` (all executed during the 2026-10-31 build) | ✅ verified in build |
 | 24 | No secrets in the tree | CI secret-scan step + `make guard` | ✅ wired (see note) |
 | 25 | DeepInfra/Hy4 pricing + caching claims ($0.834 / $0.042 / $2.501 per 1M) | checked against deepinfra.com model page on 2026-10-31; dogfood journal shows real `cached_tokens` | ✅ verified live (re-check before big spend) |
+| 26 | No horizon configured → v0.2 justification semantics bit-for-bit | `tests/test_reattestation.py::test_no_horizon_keeps_v02_semantics_forever` | ✅ tested |
+| 27 | Freshness: grace window then linear decay; weakest link rules the chain | `test_freshness_grace_then_linear_decay`, `test_weakest_link_rules_the_chain` | ✅ tested |
+| 28 | Running under a purpose re-attests its whole chain (transitive to root) | `test_runtime_stamps_chains_of_winners`, `test_stamp_chain_is_transitive_to_the_root` | ✅ tested |
+| 29 | Unserved ALIVE nodes lapse to UNKNOWN at the audit; necrology records it; nothing deleted | `test_runtime_reaps_unserved_purposes_on_audit_ticks`, `test_unserved_purpose_lapses_to_unknown_never_deleted` | ✅ tested |
+| 30 | A lapsed node cannot run and cannot self-attest; only revive(reason) restores it | `test_lapsed_node_blocked_until_revived` | ✅ tested |
+| 31 | Conservation holds under random kill/revive/lapse storms (43 nodes, 300 ticks) | `test_conservation_survives_random_storm_with_reaping` | ✅ tested |
+| 32 | Save/load round-trips horizon, last_beat, freshness, justification | `test_revived_purpose_resumes_and_persistence_roundtrips` | ✅ tested |
+| 33 | Revival without service buys exactly one horizon; revival with service holds | `python experiments/reattestation_economics.py` (CI-verified: 2 lapses, 2 revives, ever_declared=3) | ✅ verified in build |
 
-**Test count:** 121 as of v0.2.0 — **40 from the v0.2 kernel**
+**Test count:** 137 as of v0.3.0 (in progress) — **40 from the v0.2 kernel**
 (`src/cognitive_ecology/`, the subject of this audit) **+ 81 from the
 preserved v0.1 research line** (`src/ecology/`, alternative WHY
 formalism + LLM teacher layer; see README "Two development lines").

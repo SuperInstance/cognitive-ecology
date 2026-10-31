@@ -62,6 +62,7 @@ class TickReport:
     slept: bool = False
     events: int = 0
     conservation_ok: Optional[bool] = None
+    lapsed: list = field(default_factory=list)  # WHY nodes lapsed this tick
     tensions: dict = field(default_factory=dict)  # levels at end of tick
 
     def to_row(self) -> dict:
@@ -69,7 +70,7 @@ class TickReport:
             "tick": self.tick, "ran": self.ran, "yielded": self.yielded,
             "starved_n": len(self.starved), "slept": self.slept,
             "events": self.events, "conservation_ok": self.conservation_ok,
-            "tensions": self.tensions,
+            "lapsed": self.lapsed, "tensions": self.tensions,
         }
 
 
@@ -154,13 +155,14 @@ class WorldSnapshot:
 class Runtime:
     """L0 — the body. Ticks the organism. Never calls a model."""
 
-    def __init__(self, seed: int = 7, top_k: int = 3, idle_window: int = 5) -> None:
+    def __init__(self, seed: int = 7, top_k: int = 3, idle_window: int = 5,
+                 attestation_horizon: Optional[int] = None) -> None:
         self.seed = seed
         self.top_k = top_k
         self._rng = random.Random(seed)
 
         self.bus = EventBus()
-        self.why = WhyTree()
+        self.why = WhyTree(attestation_horizon=attestation_horizon)
         self.graph = WorldGraph()
         self.tensions = TensionField()
         self.market = AttentionMarket()
@@ -221,6 +223,7 @@ class Runtime:
         """One heartbeat of the organism. See module docstring for the order."""
         self.tick_no += 1
         t = self.tick_no
+        self.why.now = t  # the WHY clock advances with the organism
         start_len = len(self.bus)
 
         # 1. drives grow
@@ -255,6 +258,8 @@ class Runtime:
             except Exception as exc:  # a crashing component must not kill the body
                 out = Outcome(False, f"component error: {exc.__class__.__name__}: {exc}")
             ran.append(d.bid.label)
+            # running under a purpose re-attests it — use it or lose it
+            self.why.stamp_chain(comp.why_node, t)
             self.bus.emit(
                 EventKind.NOTE_ON, (d.bid.label, 1 if out.ok else 0),
                 src=d.bid.src, ts=t, cause=d.event_seq,
@@ -281,9 +286,18 @@ class Runtime:
         else:
             self._idle = 0
 
-        # 10. periodic conservation audit — the law must hold, always
+        # 10. periodic conservation audit — the law must hold, always.
+        #     With an attestation horizon, the audit is also the reaper:
+        #     unserved purposes lapse to UNKNOWN (never deleted).
         audit: Optional[bool] = None
+        lapsed_ids: list = []
         if t % 25 == 0 or t == 1:
+            for n in self.why.reap(t):
+                lapsed_ids.append(n.id)
+                self.bus.emit(
+                    EventKind.WHY, (n.id, "alive", "unknown", "lapsed"),
+                    src="reaper", ts=t,
+                )
             audit = self.why.conservation()["invariant_ok"]
             self._last_audit_ok = audit
             if not audit:
@@ -295,7 +309,7 @@ class Runtime:
         return TickReport(
             tick=t, ran=ran, yielded=yielded, starved=starved_labels,
             slept=slept, events=len(self.bus) - start_len,
-            conservation_ok=audit,
+            conservation_ok=audit, lapsed=lapsed_ids,
             tensions=self.tensions.snapshot(),
         )
 
@@ -320,6 +334,7 @@ class Runtime:
             "tick": self.tick_no,
             "seed": self.seed,
             "top_k": self.top_k,
+            "attestation_horizon": self.why.attestation_horizon,
             "idle": self._idle,
             "why": self.why.to_json(),
             "graph": self.graph.to_json(),
@@ -347,7 +362,8 @@ class Runtime:
         with open(os.path.join(path, "events.jsonl"), encoding="utf-8") as f:
             events_text = f.read()
 
-        rt = cls(seed=state["seed"], top_k=state["top_k"])
+        rt = cls(seed=state["seed"], top_k=state["top_k"],
+                 attestation_horizon=state.get("attestation_horizon"))
         rt.tick_no = state["tick"]
         rt._idle = state.get("idle", 0)
         rt.why = WhyTree.from_json(state["why"])

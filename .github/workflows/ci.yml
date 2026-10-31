@@ -27,6 +27,8 @@ jobs:
 
       - name: The ten-minute organism runs end to end
         run: python experiments/minimal_world.py --ticks 60 > /dev/null
+        - name: Re-attestation economics experiment
+          run: python experiments/reattestation_economics.py > /dev/null
 
       - name: Examples run keyless
         run: |

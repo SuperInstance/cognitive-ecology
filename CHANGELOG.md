@@ -4,6 +4,21 @@ All notable changes to cognitive-ecology. Format follows
 keepachangelog.com; versioning is semantic-ish (pre-1.0: minor bumps for
 anything, patches for fixes).
 
+## [0.3.0] — 2026-10-31 (in progress)
+
+### Added
+- **Re-attestation economics** (ADR-0007): optional `attestation_horizon`
+  makes WHY liveness a subscription instead of a purchase — running under
+  a purpose stamps its whole chain (`stamp_chain`, transitive to the root);
+  `justification()` is discounted by weakest-link `freshness()` (grace
+  window, then linear decay); the periodic audit reaps unserved ALIVE
+  nodes to UNKNOWN ("lapsed", recorded, never deleted); only explicit
+  `revive(reason)` restores a lapsed purpose. Default `None` keeps v0.2
+  semantics bit-for-bit. 16 new tests; receipts in
+  `experiments/reattestation_economics.py` (served purpose holds 1.000
+  for 480 ticks; unserved lapses twice — revival without service buys
+  exactly one more horizon).
+
 ## [0.2.0] — 2026-10-31
 
 The kernel becomes a complete, documented, play-tested organism suite.
