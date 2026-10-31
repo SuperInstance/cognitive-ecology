@@ -119,6 +119,9 @@ class WhyTree:
         # see audit.py and ADR-0008.
         self._genesis: list = []   # (id, parent, statement, born, state, last_beat)
         self._journal: list = []   # (tick, node_id, by)
+        # honest archival (v0.3, ADR-0010): ancient DEAD subtrees leave the
+        # hot tree for cold storage — counted, manifested, restorable.
+        self._archived: dict = {}  # id -> full row dict + archived_at
 
     # ------------------------------------------------------------------
     # structure
@@ -438,18 +441,65 @@ class WhyTree:
         The third block of the replay basis (audit.py)."""
         return tuple(self._journal)
 
+    def archived_ids(self) -> tuple:
+        """Ids in cold storage (ADR-0010). Counted by conservation();
+        biographied by the archive manifest; restorable by ceremony."""
+        return tuple(sorted(self._archived))
+
+    def archived_row(self, nid: str) -> dict:
+        return dict(self._archived[nid])
+
+    def _detach_subtree(self, nid: str) -> list:
+        """Remove nid and its descendants from the hot tree. Internal —
+        only ColdStorage (archive.py) may call this, and only for
+        eligible DEAD subtrees. Returns the removed full rows."""
+        ids = [nid] + self.descendants(nid)
+        rows = []
+        for i in ids:
+            n = self._nodes.pop(i)
+            self._children.pop(i, None)
+            rows.append({
+                "id": n.id, "parent": n.parent, "statement": n.statement,
+                "born": n.born, "state": n.state.value, "last_beat": n.last_beat,
+                "last_attested_by": n.last_attested_by, "probation": n.probation,
+            })
+        # drop dangling child-map entries pointing at detached ids
+        for i in ids:
+            for kids in self._children.values():
+                if i in kids:
+                    kids.remove(i)
+        return rows
+
+    def _attach_row(self, row: dict) -> None:
+        """Rehydrate one archived row into the hot tree (restore ceremony)."""
+        node = WhyNode(
+            id=row["id"], parent=row["parent"], statement=row["statement"],
+            state=WhyState(row["state"]), born=row["born"],
+            last_beat=row["last_beat"],
+            last_attested_by=row.get("last_attested_by", ""),
+            probation=row.get("probation", False),
+        )
+        self._nodes[node.id] = node
+        if node.parent is not None:
+            self._children.setdefault(node.parent, []).append(node.id)
+
     def conservation(self) -> dict:
-        """The audit: states must always account for every node ever declared."""
+        """The audit: states must always account for every node ever declared.
+
+        Nodes in cold storage count too — archival is a storage change,
+        never a deletion (ADR-0010)."""
         counts = {s: 0 for s in WhyState}
         for n in self._nodes.values():
             counts[n.state] += 1
-        total = sum(counts.values())
+        hot = sum(counts.values())
+        total = hot + len(self._archived)
         return {
             "ever_declared": self._ever_declared,
             "alive": counts[WhyState.ALIVE],
             "dead": counts[WhyState.DEAD],
             "unknown": counts[WhyState.UNKNOWN],
             "absent": counts[WhyState.ABSENT],
+            "archived": len(self._archived),
             "invariant_ok": total == self._ever_declared,
         }
 
@@ -475,6 +525,7 @@ class WhyTree:
             "now": self.now,
             "genesis": [list(g) for g in self._genesis],
             "journal": [list(j) for j in self._journal],
+            "archived": {nid: dict(row) for nid, row in self._archived.items()},
             "nodes": [
                 {
                     "id": n.id, "parent": n.parent, "statement": n.statement,
@@ -500,6 +551,7 @@ class WhyTree:
         tree.now = data.get("now", 0)
         tree._genesis = [tuple(g) for g in data.get("genesis", [])]
         tree._journal = [tuple(j) for j in data.get("journal", [])]
+        tree._archived = {nid: dict(row) for nid, row in data.get("archived", {}).items()}
         for nd in data["nodes"]:
             node = WhyNode(
                 id=nd["id"], parent=nd["parent"], statement=nd["statement"],

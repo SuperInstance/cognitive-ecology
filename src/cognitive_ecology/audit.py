@@ -167,12 +167,15 @@ class ConservationAuditor:
     # -- the comparison ----------------------------------------------------------
 
     @staticmethod
-    def _live_rows(tree: WhyTree) -> list:
-        return [
-            (n.id, n.parent, n.statement, n.born, n.state.value,
-             n.last_beat, n.last_attested_by, n.probation)
-            for n in sorted(tree.nodes(), key=lambda x: x.id)
-        ]
+    def _live_rows(tree: WhyTree, ids: set | None = None) -> list:
+        rows = []
+        for n in sorted(tree.nodes(), key=lambda x: x.id):
+            if ids is not None and n.id not in ids:
+                continue
+            rows.append((
+                n.id, n.parent, n.statement, n.born, n.state.value,
+                n.last_beat, n.last_attested_by, n.probation))
+        return rows
 
     @staticmethod
     def _replayed_rows(nodes: dict) -> list:
@@ -201,6 +204,7 @@ class ConservationAuditor:
         genesis = tree.genesis()
         necrology = tree.necrology()
         journal = tree.journal()
+        archived = set(tree.archived_ids())
 
         checks: dict = {}
         if not genesis:
@@ -212,7 +216,7 @@ class ConservationAuditor:
             )
         checks["genesis_present"] = True
         checks["accounts_for_every_declaration"] = (
-            len(genesis) == len(tree.nodes()))
+            len(genesis) == len(tree.nodes()) + len(archived))
 
         nodes, problems = self.replay(genesis, necrology, journal)
         for name, _detail in problems:
@@ -220,23 +224,42 @@ class ConservationAuditor:
         if not problems:
             checks["log_internally_consistent"] = True
 
-        live_rows = self._live_rows(tree)
+        live_rows = self._live_rows(tree)  # hot nodes only
         replay_rows = self._replayed_rows(nodes)
-        checks["state_equivalence"] = live_rows == replay_rows
+        # state equivalence is over the HOT set; archived nodes must match
+        # their manifest rows exactly (cold storage is verifiable too)
+        hot_replay = [r for r in replay_rows if r[0] not in archived]
+        checks["state_equivalence"] = live_rows == hot_replay
+        manifest_ok = True
+        if archived:
+            manifest = {nid: tree.archived_row(nid) for nid in archived}
+            for r in replay_rows:
+                if r[0] not in archived:
+                    continue
+                m = manifest.get(r[0])
+                if m is None:
+                    manifest_ok = False
+                    continue
+                if (m["id"], m["parent"], m["statement"], m["born"], m["state"],
+                        m["last_beat"], m.get("last_attested_by", ""),
+                        m.get("probation", False)) != r:
+                    manifest_ok = False
+            checks["archive_manifest_equivalence"] = manifest_ok
 
         # conservation accounting, the cheap invariant, for the receipt
         counts = {s: 0 for s in WhyState}
         for n in tree.nodes():
             counts[n.state] += 1
         checks["conservation_accounting"] = (
-            sum(counts.values()) == len(tree.nodes()) == len(genesis))
+            sum(counts.values()) + len(archived)
+            == len(tree.nodes()) + len(archived) == len(genesis))
 
         ok = all(checks.values())
         return ConservationReceipt(
             ok=ok,
             checks=checks,
             live_digest=_digest(live_rows),
-            replay_digest=_digest(replay_rows),
+            replay_digest=_digest(hot_replay),  # hot-to-hot; cold is covered
             chain_head=self.chain(necrology, journal),
             genesis_records=len(genesis),
             transition_records=len(necrology),

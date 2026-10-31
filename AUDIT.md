@@ -42,6 +42,12 @@ Every load-bearing claim in the docs, with its evidence:
 | 30 | A lapsed node cannot run and cannot self-attest; only revive(reason) restores it | `test_lapsed_node_blocked_until_revived` | ✅ tested |
 | 31 | Conservation holds under random kill/revive/lapse storms (43 nodes, 300 ticks) | `test_conservation_survives_random_storm_with_reaping` | ✅ tested |
 | 32 | Save/load round-trips horizon, last_beat, freshness, justification | `test_revived_purpose_resumes_and_persistence_roundtrips` | ✅ tested |
+| 43 | Archival eligibility is conservative (ancient DEAD, no live descendant, whole subtree) | `tests/test_archive.py::test_eligibility_is_conservative`, `::test_dead_with_live_descendant_is_not_eligible` | ✅ tested |
+| 44 | Hot + archived == ever_declared after any sweep | `test_sweep_archives_whole_dead_subtree_and_books_balance` | ✅ tested |
+| 45 | The manifest carries full biographies; the auditor verifies cold nodes against the replay | `test_nothing_is_lost_the_manifest_carries_biographies`, `test_auditor_verifies_cold_storage_against_the_replay` | ✅ tested |
+| 46 | A tampered manifest fails the receipt | `test_tampered_manifest_is_caught` | ✅ tested |
+| 47 | Restoration is the recorded two-act ceremony (restore still-DEAD w/ reason, then resurrect w/ parole) | `test_restoration_is_a_recorded_two_act_ceremony`, `::test_restore_requires_a_reason` | ✅ tested |
+| 48 | Archival survives save/load and still verifies | `test_archival_survives_save_load_and_still_verifies` | ✅ tested |
 | 38 | Brier scores are pinned math (perfect=0, coin=0.25, confidently-wrong=1); claims are validated | `tests/test_calibration.py::test_brier_score_math_is_pinned`, `::test_calibration_records_are_validated_and_filterable` | ✅ tested |
 | 39 | The runtime scores every success_p claim against its realized outcome | `test_runtime_scores_success_p_claims_against_outcomes` | ✅ tested |
 | 40 | The arbiter sees only live bids; vetoed bids never reach it; failing arbiters degrade to deterministic | `test_vetoed_bids_never_reach_the_arbiter`, `test_failing_arbiter_degrades_to_deterministic` | ✅ tested |
@@ -53,7 +59,7 @@ Every load-bearing claim in the docs, with its evidence:
 | 37 | Saved organisms carry their own conservation receipt | `Runtime.save()` embeds it; `make audit` prints it | ✅ verified in build |
 | 33 | Revival without service buys exactly one horizon; revival with service holds | `python experiments/reattestation_economics.py` (CI-verified: 2 lapses, 2 revives, ever_declared=3) | ✅ verified in build |
 
-**Test count:** 167 as of v0.3.0 (in progress) — **40 from the v0.2 kernel**
+**Test count:** 177 as of v0.3.0 (in progress) — **40 from the v0.2 kernel**
 (`src/cognitive_ecology/`, the subject of this audit) **+ 81 from the
 preserved v0.1 research line** (`src/ecology/`, alternative WHY
 formalism + LLM teacher layer; see README "Two development lines").

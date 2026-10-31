@@ -240,3 +240,19 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   (every exception swallowed by the executive's catch), which taught the
   adapter to record `last_error` before raising.
 - 167 tests green (12 new).
+
+### Round 6 — cold storage that is not deletion (ADR-0010)
+
+- OPEN_QUESTIONS #6 closed with an implementation, not an opinion.
+  `ColdStorage` sweeps ancient DEAD subtrees out of the hot tree under
+  conservative eligibility (dead > min_age, no ALIVE descendant, whole
+  subtree together), balanced books (hot + archived == ever_declared),
+  traveling biographies (the manifest carries full rows, verified by the
+  conservation auditor against the replay basis), and a two-act
+  restoration ceremony (restore-with-reason keeps the node DEAD and
+  records it; resurrect-with-parole follows).
+- **Found while testing:** the first restore only re-attached direct
+  children, orphaning cold grandchildren — restoration is now transitive
+  over the whole cold subtree. And the DEAD→DEAD restore record taught
+  the auditor a new no-op transition shape, which replays cleanly.
+- 177 tests green (10 new).

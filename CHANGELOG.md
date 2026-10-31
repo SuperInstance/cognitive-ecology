@@ -7,6 +7,12 @@ anything, patches for fixes).
 ## [0.3.0] — 2026-10-31 (in progress)
 
 ### Added
+- **Honest archival** (ADR-0010, closes OPEN_QUESTIONS #6): `ColdStorage`
+  sweeps ancient DEAD subtrees (dead > min_age, no living descendant,
+  whole subtree together) into cold storage — counted by conservation,
+  biographied in a manifest the auditor verifies against the replay basis
+  (tampered manifests fail), restorable by a recorded two-act ceremony
+  (restore-with-reason → resurrect-with-parole). 10 tests.
 - **Decision-model integration, two narrow points** (ADR-0009, live round
   005): the executive's optional `arbiter` hook delegates ONE bounded
   decision (reordering live contenders when slots are contended — vetoed
