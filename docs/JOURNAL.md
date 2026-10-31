@@ -707,3 +707,37 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
   22 — the safe seam (orchestrator/provider hardening, ScriptedProvider,
   duplicate-rejection economics); then wave-2 re-play-test with fresh
   personas to verify it all landed as experienced.
+
+### Round 18 — the machine-checked truth gate
+
+- **`scripts/check_docs.py` + `make truth` + a CI step.** Dana's top
+  one, delivered: version coherence (CHANGELOG's newest numbered
+  section must equal pyproject's version) and every documented count
+  (tests, examples, ADRs, tutorials, guides) checked against the tree
+  on every push. Prose numbers rot; checked numbers cannot.
+- **The gate proof-demonstrated itself inside its own round, twice.**
+  First run caught a live drift nobody had noticed (INDEX claimed the
+  shared docs/ADRs holds 6 records from the v0.1 line; it holds 14 —
+  0001–0006 are that line's era). Then adding the docs-code test
+  rippled the test count 257 → 258 through five doc claims, and the
+  build refused to pass until every one was updated. That is the whole
+  point: the contradiction Dana found becomes a build failure instead
+  of a trust question.
+- **The quickstart's code block is now executed as a test**
+  (`tests/test_docs_code.py`): extract the ```python block from
+  docs/01, exec it, assert the sawtooth and the conservation law. A
+  doc can never again rot into a `Tiny(rt)`-class crash — the class of
+  bug that shipped for days and hit every cold user in minute one.
+- **PROCESS.md reconciled with reality**: the golden corpus is real
+  (`tests/corpus/`, run by `tests/test_why_corpus.py`) — the "Rust why
+  + Python port" pairing was external prior work, now stated as the
+  corpus pinning semantics; the secrets bullet now describes what CI
+  actually does (history-wide scan), not what a script no longer
+  wires; a docs-truth rule joined the road list.
+- **AUDIT.md untangled**: header spans v0.2.0 → v0.4.0, rows 52–57
+  added (society federation, the WHY DAG, the outcome-arbiter, journal
+  compaction, fail-safe totality, docs truth — each with its test
+  file), and the three-era count paragraph replaced by one true
+  sentence: 258 = 177 kernel + 81 v0.1, machine-checked every push.
+- 258 tests (257 + the docs-code gate); CI runs the truth step before
+  the kernel tests on all three matrix versions.

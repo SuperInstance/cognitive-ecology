@@ -27,8 +27,9 @@ This document is the operating manual for that.*
 ## Rules of the road
 
 - **The kernel is a pure function.** No I/O, no clock unless passed, no
-  globals. The Rust `why` and the Python port are pinned to the same golden
-  corpus; a pair that changes behavior is a semantic decision, not a
+  globals. The golden corpus (`tests/corpus/`, run by
+  `tests/test_why_corpus.py`) pins WHY semantics across every change; a
+  change that alters corpus behavior is a semantic decision, not a
   refactor.
 - **The runtime must survive zero LLMs** (Law 4). Teachers edit the
   organism from outside; nothing in a tick may call a provider.
@@ -37,9 +38,14 @@ This document is the operating manual for that.*
   they taught. A playtest that finds nothing is a playtest that ran wrong.
 - **Provenance or it didn't happen.** Every panel turn, every decision
   gate, every cost is recorded. The transcript is a receipt, not a text.
-- **Secrets never ship.** `.env` is gitignored; `scripts/check_secrets.py`
-  runs in CI and pre-push; keys live in the environment and are never
-  printed, echoed, or committed. A hit fails the build.
+- **Docs counts are machine-checked.** `make truth`
+  (`scripts/check_docs.py`) fails the build when any documented count
+  drifts from the tree. Prose numbers rot; checked numbers cannot.
+- **Secrets never ship.** `.env` is gitignored; `make guard` and
+  `scripts/check_secrets.py` run pre-push, and CI scans the FULL git
+  history for key-shaped strings on every push; keys live in the
+  environment and are never printed, echoed, or committed. A hit fails
+  the build.
 - **Cache-first, always.** Stable prefix + append-only transcript + session
   `prompt_cache_key`. Cache-read is 80–90% off list price on the panel
   models; the ledger makes the saving visible per model.

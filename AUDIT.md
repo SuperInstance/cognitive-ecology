@@ -1,10 +1,10 @@
 # AUDIT
 
-Two sections: the **build self-audit** (what v0.2.0 claims, and the test
-or run that backs each claim), and an **external audit** section kept
+Two sections: the **build self-audit** (what the build claims, and the
+test or run that backs each claim), and an **external audit** section kept
 ready for a reviewer.
 
-## Build self-audit — v0.2.0 (2026-10-31)
+## Build self-audit — v0.2.0 → v0.4.0 (rows 1–51: the v0.2/v0.3 builds; rows 52–57: v0.4 + round 17; all still pinned by the same tests)
 
 Every load-bearing claim in the docs, with its evidence:
 
@@ -61,13 +61,21 @@ Every load-bearing claim in the docs, with its evidence:
 | 36 | The hash chain pins necrology + journal against any edit, including superseded stamps | `test_chain_head_pins_history_and_journal` | ✅ tested |
 | 37 | Saved organisms carry their own conservation receipt | `Runtime.save()` embeds it; `make audit` prints it | ✅ verified in build |
 | 33 | Revival without service buys exactly one horizon; revival with service holds | `python experiments/reattestation_economics.py` (CI-verified: 2 lapses, 2 revives, ever_declared=3) | ✅ verified in build |
+| 52 | Treaties route attestation between organisms; provider death propagates hard with exchange receipts; the federation auditor catches forged service | `tests/test_society.py` (lockstep determinism pinned bit-for-bit) | ✅ tested |
+| 53 | Multi-parent purposes: best-path verdicts, path-survivor cascades with a fixpoint; trees keep v0.2 semantics bit-for-bit | `tests/test_why_dag.py` | ✅ tested |
+| 54 | Arbiter delegation is scored by realized outcomes; miscalibrated or value-destroying judgment is benched to the shadow with a receipt | `tests/test_outcome_arbiter.py` | ✅ tested |
+| 55 | Journal compaction keeps replay equivalence exactly; every compaction is receipted and chain-covered | `tests/test_compaction.py` | ✅ tested |
+| 56 | Fail-safe totality: bid() explosions, junk bids, and malformed arbiter answers are contained, recorded as ERROR events, and never fatal | `tests/test_failsafe.py` (round 17) | ✅ tested |
+| 57 | Docs counts are machine-checked against the tree on every push; the quickstart's code block is executed as a test | `scripts/check_docs.py` in CI; `tests/test_docs_code.py` | ✅ wired |
 
-**Test count:** 179 as of v0.3.0 — **56 from the v0.3 economics** (re-attestation 22, auditor 12, calibration 12, archival 10, soak 2 — with overlap across files) **+ the v0.2 kernel and v0.1 research line** (121 at v0.2.0). Both suites green together; `make test` ~4s. — **40 from the v0.2 kernel**
-(`src/cognitive_ecology/`, the subject of this audit) **+ 81 from the
-preserved v0.1 research line** (`src/ecology/`, alternative WHY
-formalism + LLM teacher layer; see README "Two development lines").
-Both suites run green together on the merged tree; `make test` runs
-them in ~3s.
+**Test count:** 258 as of round 18 — **177 from the kernel**
+(`src/cognitive_ecology/`, the subject of this audit; 18 of them the
+round-17/18 pins: the fail-safe suite plus the docs-code gate) **+ 81
+from the preserved v0.1 research line**
+(`src/ecology/`, alternative WHY formalism + LLM teacher layer; see
+README "Two development lines"). Both suites run green together;
+`make test` ~4s. Counts are machine-checked on every push by
+`scripts/check_docs.py` (`make truth`).
 
 ### Known limitations (honest list)
 

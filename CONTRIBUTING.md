@@ -45,6 +45,7 @@ usually a regression test.
 pip install -e ".[dev]"
 make test          # the whole suite, ~2s
 make world         # the ten-minute tour, end to end
+make truth         # docs counts vs the tree — drift fails the build
 make examples      # all eight examples, keyless
 make guard         # secret scan locally
 ```

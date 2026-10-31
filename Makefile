@@ -1,10 +1,10 @@
-.PHONY: setup test world rounds examples ideate guard clean dist
+.PHONY: setup test world rounds examples ideate guard truth clean dist
 
 ## setup: install the kernel + dev tools (zero runtime deps; dev = pytest)
 setup:
 	pip install -e ".[dev]"
 
-## test: the whole suite (257 tests, ~2s)
+## test: the whole suite (258 tests, ~2s)
 test:
 	python -m pytest tests/ -q
 
@@ -62,3 +62,7 @@ clean:
 ## help
 help:
 	@egrep "^## " $(MAKEFILE_LIST) | sed 's/^## //'
+
+## truth: machine-check every documented count against the tree (round 18)
+truth:
+	python scripts/check_docs.py

@@ -6,6 +6,18 @@ anything, patches for fixes).
 
 ## [Unreleased]
 
+### Added
+- **Machine-checked docs truth** (round 18, the wave-1 diligence top
+  one): `scripts/check_docs.py` + `make truth` + a CI step. Version
+  coherence (CHANGELOG's newest numbered section must equal pyproject's
+  version) and every documented count (tests, examples, ADRs,
+  tutorials, guides) are checked against the tree on every push —
+  prose numbers rot, checked numbers cannot. First run caught a live
+  drift (INDEX claimed 6 ADRs on disk; the shared docs/ADRs holds 14).
+  The quickstart's code block is now executed as a test
+  (`tests/test_docs_code.py`), so a doc can never rot into a crash
+  again.
+
 ### Fixed
 - **Fail-safe totality** (round 17, found by the wave-1 red team — six
   zero-shot engineers play-tested the repo as real users):

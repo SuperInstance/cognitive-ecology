@@ -69,7 +69,7 @@ This file is for finding things fast.
 ## The v0.1 research line (`src/ecology/` — kept as provenance)
 
 A parallel implementation from an earlier line of work; installed and
-tested alongside the kernel (81 of the 257 tests). Preserved intact.
+tested alongside the kernel (81 of the 258 tests). Preserved intact.
 
 | Path | What it is |
 |---|---|
@@ -80,7 +80,7 @@ tested alongside the kernel (81 of the 257 tests). Preserved intact.
 | `data/usage.db` | SQLite usage ledger — real spend receipts from the panel rounds |
 | `library/` | research library: rounds, reflections, originals, open-questions ledger |
 | `library/rounds/` | 3 live panel rounds incl. a devil's-advocate round (receipts) |
-| `docs/ADRs/` | 6 architecture decision records from that line |
+| `docs/ADRs/` (0001–0006) | the ADRs written during that line's era; 0007 onward belong to the kernel line (14 total, machine-checked) |
 | `docs/ARCHITECTURE.md`, `PROVIDERS.md`, `JOURNAL.md`, `PROCESS.md`, `docs/MANIFESTO.md` | that line's docs |
 | `examples/tiny_mud.py`, `examples/week_in_a_box.py` | its demo organisms (may need API keys) |
 
