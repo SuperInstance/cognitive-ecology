@@ -7,6 +7,17 @@ anything, patches for fixes).
 ## [0.3.0] — 2026-10-31 (in progress)
 
 ### Added
+- **Conservation auditor** (ADR-0008, adopted from live ideation round
+  004b): every WhyTree carries a complete replay basis (genesis block +
+  necrology + attestation journal); `ConservationAuditor.verify()` replays
+  it from nothing and requires bit-for-bit equivalence with the living
+  tree. Receipts carry per-check results, live/replay digests, and a hash
+  chain over the whole basis (pins history against edits, including
+  superseded stamps). `Runtime.save()` embeds the receipt in state.json —
+  saved organisms vouch for themselves. 12 tests covering equivalence,
+  every tamper vector, persistence, and a 300-tick random storm.
+
+### Added
 - **Re-attestation economics** (ADR-0007): optional `attestation_horizon`
   makes WHY liveness a subscription instead of a purchase — running under
   a purpose stamps its whole chain (`stamp_chain`, transitive to the root);

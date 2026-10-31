@@ -24,6 +24,10 @@ examples:
 		echo "ok"; \
 	done
 
+## audit: run an organism and print its conservation receipt
+audit:
+	python -c "from experiments.minimal_world import build_world; from cognitive_ecology import ConservationAuditor; rt = build_world(7); rt.run(120); print(rt.report()); print(ConservationAuditor().verify(rt.why).summary())"
+
 ## attest: the re-attestation economics experiment (use it or lose it)
 attest:
 	python experiments/reattestation_economics.py

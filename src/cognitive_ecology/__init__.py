@@ -17,6 +17,7 @@ Cross-cutting: tension.py (homeostatic drives), simulations.py
 (counterfactual rollouts), agents/ (LLMs and decision models as citizens).
 """
 from .why import NecroRecord, WhyNode, WhyState, WhyTree, WhyVerdict
+from .audit import ConservationAuditor, ConservationReceipt
 from .events import Event, EventBus, EventKind
 from .graph import GEdge, GNode, WalkResult, WorldGraph
 from .memory import Memory
@@ -33,7 +34,8 @@ __version__ = "0.2.0"
 
 __all__ = [
     "AttentionBid", "AttentionMarket", "ClearResult", "Commitment", "Component",
-    "Decision", "Event", "EventBus", "EventKind", "Executive", "FACTORS",
+    "ConservationAuditor", "ConservationReceipt", "Decision", "Event", "EventBus",
+    "EventKind", "Executive", "FACTORS",
     "Forecast", "GEdge", "GNode", "Identity", "Memory", "NecroRecord",
     "Outcome", "Runtime", "Script", "ScriptEcology", "Simulator", "SleepCycle",
     "SleepStats", "Tension", "TensionField", "TickReport", "WalkResult",

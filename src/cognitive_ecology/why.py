@@ -113,6 +113,12 @@ class WhyTree:
         self._necrology: list = []
         self._ever_declared = 0
         self._next = 0
+        # proof-carrying conservation (v0.3): the genesis block records every
+        # declaration as born; the attestation journal records every stamp.
+        # Together with the necrology they are a complete replay basis —
+        # see audit.py and ADR-0008.
+        self._genesis: list = []   # (id, parent, statement, born, state, last_beat)
+        self._journal: list = []   # (tick, node_id, by)
 
     # ------------------------------------------------------------------
     # structure
@@ -137,6 +143,10 @@ class WhyTree:
             born=tick, last_beat=(tick if state is WhyState.ALIVE else -1),
         )
         self._nodes[nid] = node
+        self._genesis.append(
+            (nid, parent, statement, tick, state.value,
+             tick if state is WhyState.ALIVE else -1)
+        )
         if parent is not None:
             self._children.setdefault(parent, []).append(nid)
         self._ever_declared += 1
@@ -269,6 +279,7 @@ class WhyTree:
             if by:
                 node.last_attested_by = by
             node.probation = False  # genuine service ends parole
+            self._journal.append((tick, nid, by))
             return True
         return False
 
@@ -415,6 +426,18 @@ class WhyTree:
         """Every purpose transition, ever. Append-only."""
         return tuple(self._necrology)
 
+    def genesis(self) -> tuple:
+        """Every declaration as born: (id, parent, statement, tick, state, last_beat).
+
+        The first block of the replay basis (audit.py)."""
+        return tuple(self._genesis)
+
+    def journal(self) -> tuple:
+        """Every attestation stamp, in order: (tick, node_id, by).
+
+        The third block of the replay basis (audit.py)."""
+        return tuple(self._journal)
+
     def conservation(self) -> dict:
         """The audit: states must always account for every node ever declared."""
         counts = {s: 0 for s in WhyState}
@@ -450,6 +473,8 @@ class WhyTree:
         return {
             "attestation_horizon": self.attestation_horizon,
             "now": self.now,
+            "genesis": [list(g) for g in self._genesis],
+            "journal": [list(j) for j in self._journal],
             "nodes": [
                 {
                     "id": n.id, "parent": n.parent, "statement": n.statement,
@@ -473,6 +498,8 @@ class WhyTree:
     def from_json(cls, data: dict) -> "WhyTree":
         tree = cls(attestation_horizon=data.get("attestation_horizon"))
         tree.now = data.get("now", 0)
+        tree._genesis = [tuple(g) for g in data.get("genesis", [])]
+        tree._journal = [tuple(j) for j in data.get("journal", [])]
         for nd in data["nodes"]:
             node = WhyNode(
                 id=nd["id"], parent=nd["parent"], statement=nd["statement"],

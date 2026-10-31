@@ -40,6 +40,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Iterable, Optional, Protocol, runtime_checkable
 
 from .attention import AttentionBid, AttentionMarket
+from .audit import ConservationAuditor
 from .events import Event, EventBus, EventKind
 from .executive import Executive
 from .graph import WorldGraph
@@ -327,7 +328,13 @@ class Runtime:
     # persistence: the organism survives its process
     # ------------------------------------------------------------------
     def save(self, path: str) -> None:
-        """Write the organism's state. Behavior lives in code; state lives here."""
+        """Write the organism's state. Behavior lives in code; state lives here.
+
+        The state file carries its own conservation receipt (ADR-0008):
+        genesis + necrology + attestation journal replay to exactly this
+        state, or the save refuses to vouch for it.
+        """
+        receipt = ConservationAuditor().verify(self.why)
         os.makedirs(path, exist_ok=True)
         state = {
             "format": "cognitive-ecology/state",
@@ -337,6 +344,16 @@ class Runtime:
             "top_k": self.top_k,
             "attestation_horizon": self.why.attestation_horizon,
             "idle": self._idle,
+            "conservation_receipt": {
+                "ok": receipt.ok,
+                "live_digest": receipt.live_digest,
+                "replay_digest": receipt.replay_digest,
+                "chain_head": receipt.chain_head,
+                "genesis_records": receipt.genesis_records,
+                "transition_records": receipt.transition_records,
+                "journal_records": receipt.journal_records,
+                "summary": receipt.summary(),
+            },
             "why": self.why.to_json(),
             "graph": self.graph.to_json(),
             "tensions": self.tensions.to_dict(),
@@ -388,6 +405,10 @@ class Runtime:
     # ------------------------------------------------------------------
     # reporting
     # ------------------------------------------------------------------
+    def audit(self):
+        """Full conservation receipt: replay basis vs the living tree."""
+        return ConservationAuditor().verify(self.why)
+
     def report(self) -> str:
         c = self.why.conservation()
         return "\n".join([

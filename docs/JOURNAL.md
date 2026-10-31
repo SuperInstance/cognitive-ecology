@@ -198,3 +198,24 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   Brier-logged — merges into the decision-model round). Deferred: sleep
   scheduler triggers (kept on the ledger).
 - 143 tests green. Commit: this one.
+
+### Round 4 — conservation becomes proof-carrying (ADR-0008)
+
+- **Adopted from the ideation round**: the necrology replay equivalence.
+  Every WhyTree now carries a genesis block (declarations as born), the
+  necrology (transitions), and an attestation journal (every stamp with
+  provenance) — together a complete replay basis.
+- `ConservationAuditor.verify()` replays the basis from nothing and
+  demands bit-for-bit equivalence with the living tree: states, heartbeats,
+  provenance, parole. Receipts carry live/replay digests and a hash chain
+  over the whole basis; `Runtime.save()` embeds the receipt in state.json,
+  so a saved organism vouches for its own history.
+- **Two honest limits found by the tests themselves:** same-tick reorders
+  of independent records are outcome-equivalent and absorbed (the receipt
+  proves outcomes, not byte-order); and a *superseded* stamp is invisible
+  to state equivalence — which is why the chain covers the journal, not
+  just the necrology.
+- The replay semantics needed no schema change: every transition's effect
+  is determined by its (from, to) pair — revive/resurrect land on parole,
+  activate does not, lapse/kill/park touch state only.
+- `make audit` prints a live receipt; 155 tests green (12 new).
