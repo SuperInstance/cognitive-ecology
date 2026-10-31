@@ -206,6 +206,7 @@ discipline and journals the results).
 | [docs/03_layers_reference.md](docs/03_layers_reference.md) | every layer's API and invariants |
 | [docs/04_why_conservation.md](docs/04_why_conservation.md) | the WHY law, completely |
 | [docs/05_attention_economics.md](docs/05_attention_economics.md) | the five factors, tuning, anti-patterns |
+| [docs/11_thor_successor.md](docs/11_thor_successor.md) | the AGX Thor successor (SI-Thor/ecology-thor) — what moved where |
 | [docs/06_agents_and_providers.md](docs/06_agents_and_providers.md) | LLMs as citizens + caching economics |
 | [docs/07_playbook.md](docs/07_playbook.md) | how to play-test (and what play-testing found) |
 | [docs/08_decision_models.md](docs/08_decision_models.md) | typed-decision synergy + experiment plan |
