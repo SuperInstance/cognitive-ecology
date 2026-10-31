@@ -63,6 +63,9 @@ class MarketLog:
 
     def __init__(self, keep: Optional[int] = 100_000) -> None:
         self._rows: deque = deque(maxlen=keep)
+        # round 24 (ideation 016, finding 1): a bounded tail must say
+        # what it dropped, or a long run silently loses its own history
+        self.dropped_rows = 0
 
     # ------------------------------------------------------------------
     # write side (called by the executive — never by user code)
@@ -88,6 +91,9 @@ class MarketLog:
             status = status_by_id.get(id(b))
             if status is None:  # not a winner: live-loser or vetoed
                 status = "starved" if b.attention > 0.0 else "vetoed"
+            if (self._rows.maxlen is not None
+                    and len(self._rows) == self._rows.maxlen):
+                self.dropped_rows += 1  # the ring is full: this push evicts
             self._rows.append({
                 "kind": "bid", "tick": tick, "src": b.src, "label": b.label,
                 **{f: float(getattr(b, f)) for f in FACTORS},
@@ -134,12 +140,17 @@ class MarketLog:
             elif r["status"] == "vetoed":
                 vetoed[r["label"]] = vetoed.get(r["label"], 0) + 1
         arb_rows = [r for r in self._rows if r.get("kind") == "arbiter"]
+        first_tick = min((r["tick"] for r in bid_rows), default=None)
         return {
             "clears": len(ticks), "bids": n,
             **by_status,
             "clear_rate": by_status["run"] / n if n else 0.0,
             "mean_winner_attention": att_sum / by_status["run"]
             if by_status["run"] else None,
+            # the tail's honesty (016 finding 1): how much history the ring
+            # evicted, and where the surviving window starts
+            "dropped_rows": self.dropped_rows,
+            "first_tick": first_tick,
             "top_winners": sorted(winners.items(),
                                   key=lambda kv: (-kv[1], kv[0]))[:5],
             "most_starved": sorted(starved.items(),

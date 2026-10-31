@@ -103,6 +103,13 @@ class WallClockDriver:
         report = DriverReport()
         start = self._now()
         next_at = start
+        mid_tick = False  # round 24 (016 finding 2): a checkpoint must
+        # never persist a half-applied tick — if the interrupt lands
+        # INSIDE rt.tick() (after ingest, before consolidation, or
+        # mid-WHY-mutation), the in-memory organism is between the
+        # tick's own atomic boundaries, and saving it would write a
+        # state no completed tick ever produced. The last boundary
+        # checkpoint stands; a crash costs at most save_every ticks.
         try:
             while True:
                 if max_ticks is not None and report.ticks >= max_ticks:
@@ -115,7 +122,9 @@ class WallClockDriver:
                 now = self._now()
                 if now < next_at:
                     self._sleep(next_at - now)
+                mid_tick = True
                 last = rt.tick()
+                mid_tick = False
                 report.ticks += 1
                 if save_every and save_path and report.ticks % save_every == 0:
                     rt.save(save_path)
@@ -132,8 +141,10 @@ class WallClockDriver:
             report.stopped_by = "error"
             report.error = f"{exc.__class__.__name__}: {exc}"
         finally:
-            # final checkpoint when the tail wasn't just saved
-            if save_every and save_path and report.ticks % save_every != 0:
+            # final checkpoint when the tail wasn't just saved — and only
+            # at a tick boundary (see mid_tick above)
+            if (save_every and save_path and not mid_tick
+                    and report.ticks % save_every != 0):
                 rt.save(save_path)
                 report.saves += 1
             report.wall_seconds = self._now() - start

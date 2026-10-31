@@ -72,7 +72,7 @@ This file is for finding things fast.
 ## The v0.1 research line (`src/ecology/` — kept as provenance)
 
 A parallel implementation from an earlier line of work; installed and
-tested alongside the kernel (81 of the 324 tests). Preserved intact.
+tested alongside the kernel (81 of the 330 tests). Preserved intact.
 
 | Path | What it is |
 |---|---|

@@ -153,7 +153,17 @@ duplicates. A rejection is a demotion with receipts:
   starves. The market teaches the model to propose new behaviors.
 
 A dead script's re-proposal is a resurrection, not a duplicate — only
-the live population is searched. And `rest` now rejects non-finite
+the live population is searched.
+
+**The boundary of signature-detection:** `when_hint` IS part of the
+behavior — always-watch and every-5-watch are different scripts by
+design (pinned by test), so hint-jittered variants of the same action
+are distinct behaviors and pass the seam. The organism's answer to
+that kind of redundancy is not signature-law but starvation economics:
+variants that never win attention starve, die, and enter the
+necrology. Duplicate-detection bounds the POPULATION; the market
+bounds the ATTENTION. (An agent that proposes only jittered variants
+of one act is not blocked — it is simply boring, and boring loses.) And `rest` now rejects non-finite
 amounts at the seam (`amount must be finite`) while the kernel no-ops
 them (defense in depth: `max(0.0, nan)` used to zero a tension for
 free — that lunch is off the menu).

@@ -317,3 +317,36 @@ class TestOrganismIntegration:
         rt2.run(3)
         ticks = {r["tick"] for r in rt2.market_log.bids()}
         assert ticks == {11, 12, 13}             # and it observes the new life
+
+
+class TestTailHonesty:
+    """Round 24 (ideation 016, finding 1): a bounded tail must say what
+    it dropped — a long run may not silently lose its own history."""
+
+    def test_dropped_rows_counted_when_the_ring_wraps(self):
+        log = MarketLog(keep=3)
+        for t in range(3):
+            _clear(log, tick=t)   # clear 1 fills the ring; 2 and 3 evict
+        assert log.dropped_rows == 6      # two evicting clears x 3 rows
+        _clear(log, tick=3)               # a fourth eviction
+        assert log.dropped_rows == 9
+        s = log.summary()
+        assert s["dropped_rows"] == 9 and s["first_tick"] == 3
+
+    def test_unbounded_log_never_counts_drops(self):
+        log = MarketLog(keep=None)
+        for t in range(5):
+            _clear(log, tick=t)
+        assert log.dropped_rows == 0
+        assert log.summary()["first_tick"] == 0
+
+    def test_the_gap_is_visible_not_silent(self):
+        """A wrapped tail reports where its window starts — the analyst
+        sees the gap and the drop count, never an illusion of totality."""
+        log = MarketLog(keep=3)
+        for t in range(3):
+            _clear(log, tick=t)
+        _clear(log, tick=99)
+        s = log.summary()
+        assert s["dropped_rows"] == 9
+        assert s["first_tick"] == 99       # the window starts where it starts

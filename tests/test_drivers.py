@@ -193,3 +193,85 @@ class TestRealOrganism:
         plain.run(40)
         assert driven.bus.to_jsonl() == plain.bus.to_jsonl()
         assert driven.why.conservation()["invariant_ok"]
+
+
+class TestTickAtomicCheckpoints:
+    """Round 24 (ideation 016, finding 2): a checkpoint must never
+    persist a half-applied tick. If the interrupt (or a kernel error)
+    lands INSIDE rt.tick(), the final save is skipped — the last
+    boundary checkpoint stands, exactly as the docs promise."""
+
+    def test_no_save_when_interrupted_mid_tick(self, tmp_path):
+        class Interruptible:
+            tick_no = 0
+
+            def tick(self):
+                self.tick_no += 1
+                if self.tick_no == 3:
+                    raise KeyboardInterrupt("^C inside the tick body")
+                return None
+
+            def save(self, path):
+                self.saved_at = self.tick_no
+                raise AssertionError("must not save a half-applied tick")
+
+        clock = FakeClock()
+        path = str(tmp_path / "organism")
+        org = Interruptible()
+        report = WallClockDriver(0.01, sleep_fn=clock.sleep,
+                                 monotonic_fn=clock.monotonic).run(
+            org, max_ticks=10, save_every=100, save_path=path)
+        assert report.stopped_by == "keyboard"
+        assert report.ticks == 2 and report.saves == 0
+        assert not hasattr(org, "saved_at")
+
+    def test_save_still_happens_between_ticks(self, tmp_path):
+        """The same interrupt landing BETWEEN ticks (in a sleep) still
+        checkpoints the cleanly-completed life."""
+        clock = FakeClock()
+
+        def explode(seconds):
+            raise KeyboardInterrupt("^C during a sleep")
+
+        rt = _desk()
+        path = str(tmp_path / "organism")
+        report = WallClockDriver(0.1, sleep_fn=explode,
+                                 monotonic_fn=clock.monotonic).run(
+            rt, max_ticks=10, save_every=100, save_path=path)
+        assert report.stopped_by == "keyboard"
+        assert report.saves == 1          # the boundary checkpoint fired
+        import json
+        with open(path + "/state.json", encoding="utf-8") as f:
+            assert json.load(f)["tick"] == 1
+
+    def test_suspended_clock_catches_up_without_drift(self):
+        """VM suspend/resume: the monotonic clock jumps FORWARD. The
+        driver must not sleep into the past — it catches up by ticking
+        back-to-back until the slots are current (no sleep requested),
+        then resumes normal pacing. The tick budget is unchanged by the
+        jump: a slot is a slot."""
+        class SuspendingClock:
+            def __init__(self):
+                self.t = 0.0
+                self.slept = []
+
+            def monotonic(self):
+                return self.t
+
+            def sleep(self, seconds):
+                self.slept.append(seconds)
+                self.t += seconds
+                if len(self.slept) == 3:      # the machine suspends
+                    self.t += 10.0            # ... and resumes 10s later
+
+        clk = SuspendingClock()
+        report = WallClockDriver(0.1, sleep_fn=clk.sleep,
+                                 monotonic_fn=clk.monotonic).run(
+            _desk(), max_ticks=11)
+        assert report.stopped_by == "max_ticks"
+        assert report.ticks == 11
+        # every sleep aimed forward (never into the past)
+        assert all(s > 0 for s in clk.slept)
+        # the catch-up: after the 3rd sleep the clock jumped +10s, so
+        # the remaining 8 slots ticked back-to-back with NO sleep at all
+        assert len(clk.slept) == 3

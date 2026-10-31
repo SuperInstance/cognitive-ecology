@@ -75,6 +75,27 @@ vetoed rows come from components that submit raw bids — LLM proposal
 agents, custom components. The veto law protects the market no matter
 who speaks.
 
+### What the log cannot see (the seam boundary)
+
+The read model observes the MARKET, and only bids that reached it.
+Demand rejected upstream — a duplicate proposal demoted by
+`spawn_unique`, a malformed proposal, a non-finite `rest` amount —
+never becomes a bid and so never becomes a row. That history lives
+where it happens: `ecology.duplicates_rejected` /
+`ecology.duplicate_log`, and ERROR events on the bus (which LLM
+proposers read on their next turn). When benching acceptance, read
+both surfaces: the market log for what the market saw, the ecology
+counters for what the seam turned away.
+
+### Tail honesty
+
+`keep` is a ring: on very long runs the oldest rows are evicted. The
+log says so — `summary()["dropped_rows"]` counts every eviction and
+`summary()["first_tick"]` shows where the surviving window starts, so
+a tail is never mistaken for the whole history. The durable copy you
+write via `to_jsonl()` is, of course, as complete as you choose to
+make it.
+
 ## Durable copies and provenance: `run_rounds.py`
 
 The in-memory log is a bounded tail (default: most recent 100k rows —

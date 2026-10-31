@@ -982,3 +982,47 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
   (not a numbered guide — meta-doc, like PROCESS).
 - Next: **wave-2** — fresh personas re-play-test the whole wave
   (17–23) to verify it landed as experienced, not just as tests.
+
+### Round 24 — ideation 016: rounds 21-23 through outside eyes
+
+- **The dogfood loop ran again, cache-first**: one stable prefix
+  describing the wave (17-23), two volatile asks (red-team + wave-2
+  cast) — Hy4-preview x2 at 768/910 and 768/937 cached tokens
+  (~$0.0068 total; the prefix cache paid for the second call almost
+  entirely), then the typesafe arbiter ranked the wave-2 probes.
+  Full receipt: `library/rounds/016-wave2-through-outside-eyes.md`.
+  (First run trunc'd both answers at the token budget — budgets raised
+  and the round re-run; the receipt on disk is the complete one.)
+- **Adopted (2 of 3, with pinning tests):**
+  1. **Tail honesty** — the market log's ring now counts every
+     eviction: `summary()["dropped_rows"]` + `first_tick`. A 250k-tick
+     run can no longer present its last 100k rows as if they were the
+     whole history; the window says where it starts and what it lost.
+  2. **Tick-atomic checkpoints** — the red team was RIGHT that the
+     driver's finally-block could persist a half-applied tick (^C
+     inside rt.tick(): after ingest, before consolidation). Now the
+     final save is skipped when the interrupt landed mid-tick; the
+     last boundary checkpoint stands, exactly as the docs promised.
+     Plus the suspend/resume contract pinned: a forward clock jump
+     (VM resume) means catch-up ticks with no sleep into the past —
+     11 slots are 11 slots, jump or not.
+- **Rebutted with receipts (1 of 3):** the claim that `when_hint` in
+  the behavior signature "collides distinct behaviors" has it
+  backwards — always-watch and every-5-watch ARE different behaviors
+  (pinned by `test_when_hint_counts_toward_behavior`), and the
+  orchestrator creates no second WHY node (proposals ride the agent's
+  existing node — checked against the code). The honest kernel of the
+  finding — hint-jittered variants pass the seam — is real but is the
+  DESIGN: duplicate-detection bounds the population, starvation
+  economics bounds attention. Documented as the boundary in docs/06
+  ("boring loses"), not changed.
+- **The wave-2 cast (six fresh personas):** Noor (quant: sweeps,
+  manifests, exact floats), Mateo (game-loop integrator: drivers,
+  ingest law, Ctrl-C), Ines (agent author: ensure_* + demotions),
+  Yuki (reliability: kill/tamper/compact), Levi (fail-safes), Zara
+  (docs truth: cold clone, README verbatim, rot-a-count). The typesafe
+  arbiter's call, with the probe set scoring 0.95 coverage:
+  **E_docs_truth first** (confidence 0.14 — low, but the ranking held
+  across both runs) — the cold-clone probe, which doubles as the
+  freshest-eyes test of whether the repo survives first contact.
+- 330 tests (324 + 6); truth gate rippled; next: wave-2 executed.

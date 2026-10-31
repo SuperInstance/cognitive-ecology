@@ -72,9 +72,23 @@ anything, patches for fixes).
   seeds and aggregates mean ± spread per metric. The sweep's first
   use found `minimal_world` is seed-invariant (nothing consumes
   randomness) — the instrument calibrated itself on day one.
+- **Zero-shot red-team adopted in part** (round 24, ideation 016:
+  Hy4-preview x2 cache-first + typesafe arbiter, ~$0.007): the market
+  log's ring now counts its evictions (`summary()["dropped_rows"]` and
+  `first_tick` — a tail can no longer masquerade as the whole
+  history); drivers checkpoint only at tick boundaries (an interrupt
+  landing INSIDE rt.tick() skips the final save — no half-applied tick
+  is ever persisted; the boundary checkpoint stands); the
+  suspend/resume catch-up contract is pinned (a forward clock jump
+  ticks back-to-back with no sleep into the past). Rebutted with
+  receipts: `when_hint` is deliberately part of the behavior signature
+  (pinned by test), and the orchestrator creates no second WHY — the
+  hint-variant boundary is now documented as starvation economics, not
+  signature law.
 - 17 new tests (`tests/test_marketlog.py`); 16 in round 22
   (`tests/test_drivers.py`, `tests/test_example04_asks.py`); 18 in
-  round 23 (`tests/test_safe_seam.py`): 324 total.
+  round 23 (`tests/test_safe_seam.py`); 6 in round 24 (tail honesty,
+tick-atomic checkpoints, suspend catch-up): 330 total.
 
 ### Added (earlier unreleased rounds)
 - **Machine-checked docs truth** (round 18, the wave-1 diligence top
