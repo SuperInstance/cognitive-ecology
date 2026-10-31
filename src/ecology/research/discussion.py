@@ -140,7 +140,22 @@ class Discussion:
                 max_tokens=700,
                 temperature=0.7,
             )
-            response = client.complete(spec, participant.model, role=participant.role)
+            # A dropped panelist must not kill the round: the seat goes
+            # vacant, the vacancy is recorded, the panel continues.
+            try:
+                response = client.complete(spec, participant.model, role=participant.role)
+            except Exception as exc:  # noqa: BLE001 - panel resilience
+                self.transcript.turns.append(
+                    Turn(
+                        participant=participant.name,
+                        role=participant.role,
+                        round_no=round_no,
+                        text=f"(seat vacant this round — provider error: {exc})",
+                        provider=participant.provider,
+                        model=participant.model,
+                    )
+                )
+                continue
             turn = Turn(
                 participant=participant.name,
                 role=participant.role,
@@ -151,7 +166,7 @@ class Discussion:
                 latency_ms=response.latency_ms,
                 prompt_tokens=response.usage.prompt_tokens,
                 completion_tokens=response.usage.completion_tokens,
-                cached_tokens=response.usage.cache_hit_tokens,
+                cached_tokens=response.cache_hit_tokens,
                 cost_usd=response.usage.cost_usd,
             )
             self.transcript.turns.append(turn)
@@ -188,7 +203,17 @@ class Discussion:
             },
             questions=questions,
         )
-        response = self.decider.decide(request, role="round-gate")
+        try:
+            response = self.decider.decide(request, role="round-gate")
+        except Exception as exc:  # noqa: BLE001 - a failed gate is recorded, not fatal
+            self.transcript.decisions.append(
+                DecisionTurn(
+                    round_no=round_no,
+                    questions={},
+                    answers={"gate_error": str(exc)[:200]},
+                )
+            )
+            return
         answers = {name: ans.value for name, ans in response.answers.items()}
         self.transcript.decisions.append(
             DecisionTurn(
@@ -224,7 +249,7 @@ class Discussion:
                 latency_ms=response.latency_ms,
                 prompt_tokens=response.usage.prompt_tokens,
                 completion_tokens=response.usage.completion_tokens,
-                cached_tokens=response.usage.cache_hit_tokens,
+                cached_tokens=response.cache_hit_tokens,
                 cost_usd=response.usage.cost_usd,
             )
         )
