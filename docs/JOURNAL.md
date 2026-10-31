@@ -270,3 +270,15 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   honest; compaction is future work (ADR-0008 already flags it).
 - Pinned: CI runs a 1,500-tick soak; the suite pins the invariants and
   bit-for-bit determinism (same seed → identical receipts). 179 green.
+
+### Round 8 — the new mechanics become examples
+
+- **06_attestation_economy**: the subscription model of purpose as a
+  story — served vs unserved sibling, economic strangulation, double
+  lapse, parole visible in the receipts (0.500 where v0.2 printed 1.000).
+- **07_audit_and_archive**: the proof-carrying organism as a courtroom
+  drama — valid receipt; flip a state off the books (caught); rewrite
+  one word of history (chain head breaks); sweep the ancient dead to
+  cold storage (books balanced, manifest verified); the two-act
+  restoration ceremony; the whole story replays.
+- All seven examples run keyless; 179 tests green; guard clean.

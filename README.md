@@ -179,6 +179,8 @@ discipline and journals the results).
 | [03_decision_desk](examples/03_decision_desk/) | decision models, hash-chained commitments, WHY-gated trading | `python examples/03_decision_desk/main.py` |
 | [04_game_npc](examples/04_game_npc/) | a NPC whose memory survives server restarts | `python examples/04_game_npc/main.py` |
 | [05_personal_journal](examples/05_personal_journal/) | memory that finds the story, not the string | `python examples/05_personal_journal/main.py` |
+| [06_attestation_economy](examples/06_attestation_economy/) | use it or lose it: served vs unserved purpose, lapse, parole | `python examples/06_attestation_economy/main.py` |
+| [07_audit_and_archive](examples/07_audit_and_archive/) | tamper with history and get caught; cold storage that is not deletion | `python examples/07_audit_and_archive/main.py` |
 
 ## Documentation
 
@@ -242,7 +244,7 @@ cognitive-ecology/
 ├── src/cognitive_ecology/       the kernel (11 modules + agents/)
 │   └── agents/                  providers, orchestrator, stable_prefix.md
 ├── experiments/                 minimal_world.py + dogfood/ artifacts
-├── examples/                    five runnable organisms
+├── examples/                    seven runnable organisms
 ├── templates/                   agent template + play-test scenario template
 ├── docs/                        8 guides + 4 tutorials
 ├── scripts/                     run_rounds.py (telemetry), ideate.py (dogfood)
