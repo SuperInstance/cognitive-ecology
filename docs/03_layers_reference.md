@@ -30,8 +30,12 @@ rt.save("runs/x"); rt2 = Runtime.load("runs/x", attach=fn)
 | `TickReport` | per-tick telemetry: `ran`, `yielded`, `starved`, `slept`, `events`, `tensions`, `conservation_ok` |
 
 **Invariants:** a component referencing an unknown WHY node cannot be
-registered (hard error). A crashing component's exception is caught and
-recorded as a failed outcome — the body survives its organs.
+registered (hard error). A misbehaving component is contained, never
+fatal: a raising `bid()`/`act()` — or a bid returning junk — is
+recorded as an `ERROR` event (with the reason), the tick goes on, and
+the broken component starves on its own economics. A failed action's
+`Outcome.note` reaches the log as an `ERROR` event, so on-call can see
+*why*, not just *that*. The body survives its organs.
 
 **Gotchas:** `run()` is not resumed automatically across processes —
 `save()`/`load()` is the persistence path; `attach()` must re-register
@@ -149,6 +153,11 @@ Executive(market, bus).arbitrate(bids, top_k=3, ts=t)  # -> list[Decision]
 **Invariants:** any zero factor vetoes (attention 0 bids never clear —
 not even in an empty market); ranking ties break deterministically by
 `(src, label)`; one winner per exclusive `resource`, the rest *yield*.
+An arbiter's answer must be an ordered subset of the live bids it was
+shown (by identity) — a malformed return (wrong types, a foreign
+look-alike, duplicates) is a failed answer: it degrades to the
+deterministic shadow, is counted in `arbiter_malformed`, and is
+recorded as an `ERROR` event.
 
 ---
 

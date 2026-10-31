@@ -7,7 +7,7 @@ not kings.
 
 ```
 Python >= 3.10  ·  zero runtime dependencies  ·  zero LLM required to run
-240 tests       ·  deterministic (seeded)     ·  MIT license
+257 tests       ·  deterministic (seeded)     ·  MIT license
 ```
 
 ---
@@ -183,7 +183,7 @@ cache session** that measures hit rates and savings (on
 the prompt's shape is a cost decision, so the kernel enforces the
 discipline and journals the results).
 
-## Examples (seven, all runnable keyless)
+## Examples (eight, all runnable keyless)
 
 | Example | What it shows | Run |
 |---|---|---|
@@ -259,11 +259,11 @@ cognitive-ecology/
 ├── src/cognitive_ecology/       the kernel (11 modules + agents/)
 │   └── agents/                  providers, orchestrator, stable_prefix.md
 ├── experiments/                 minimal_world.py + dogfood/ artifacts
-├── examples/                    seven runnable organisms
+├── examples/                    eight runnable organisms
 ├── templates/                   agent template + play-test scenario template
 ├── docs/                        8 guides + 4 tutorials
 ├── scripts/                     run_rounds.py (telemetry), ideate.py (dogfood)
-├── tests/                       121 tests incl. conservation storms
+├── tests/                       257 tests incl. conservation storms
 ├── bootstrap.sh                 create the GitHub repo + first push (PAT via env)
 ├── Makefile                     setup / test / world / examples / guard
 └── .github/workflows/ci.yml     test matrix + secret scan
@@ -285,10 +285,11 @@ cognitive-ecology/
 
 This tree carries two implementations of the same manifesto:
 
-- **`src/cognitive_ecology/` — v0.2.0, the subject of this README.** The
-  documented kernel: L0–L8, conserved WHY, attention market, script
-  ecology, agents-as-citizens, save/load persistence. All docs,
-  tutorials and `examples/01–05` target this package.
+- **`src/cognitive_ecology/` — v0.4.0, the subject of this README.** The
+  documented kernel: L0–L9 (through the society layer), conserved WHY,
+  attention market, script ecology, agents-as-citizens, save/load
+  persistence. All docs, tutorials and `examples/01–08` target this
+  package.
 - **`src/ecology/` — the v0.1 research line, kept intact as provenance.**
   A parallel implementation with a different WHY formalism (a parseable
   graph + attestation DSL), an LLM teacher layer (DeepInfra multi-model
@@ -300,7 +301,7 @@ This tree carries two implementations of the same manifesto:
   receipts (`library/rounds/` — including a devil's-advocate round).
 
 Both packages install from this repo and both test suites run green
-together (`pytest tests/` → 121 passing: 40 from the v0.2 kernel, 81
+together (`pytest tests/` → 257 passing: 176 from the kernel, 81
 from the v0.1 line). New work should target `cognitive_ecology`; the
 v0.1 line is preserved as research history.
 
@@ -316,7 +317,7 @@ outcomes — miscalibrated or value-destroying judgment is benched with
 a receipt), and **journal compaction** (the replay basis without the
 ballast — flat verify cost at any horizon, every compaction
 receipted and chain-covered). Soak-proven at 10,000 ticks; society
-soak at 6,000 ticks across three organisms; 240 tests.
+soak at 6,000 ticks across three organisms; 257 tests.
 
 v0.3.0 — the economics of persistence: liveness as a subscription
 (re-attestation, lapse, parole on revival), conservation as a receipt

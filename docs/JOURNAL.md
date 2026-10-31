@@ -599,3 +599,111 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   surface). The v0.5 frontier: cross-organism attention markets,
   society replay equivalence, arbiter re-promotion, weighted DAG
   parents — and whatever the next play-test finds.
+
+## 2026-11-01 — session five: the developers' turn (wave-1)
+
+The directive changed lens: build for the developers and users who will
+harness this with their applications; deep play-test as many types of
+users and engineers as possible, iteratively; use zero-shot helpers for
+fresh perspectives. So wave-1 was **six independent cold personas**,
+each self-contained, each judging as a real user with a real
+application: Sam (hobbyist, a digital pet for his notes), Priya
+(senior backend, SaaS background jobs), Morgan (10-year game dev,
+NPCs), Kai (ML/agent engineer), Ana (computational researcher), Dana
+(staff engineer doing diligence). All six ran code, measured, and
+attacked; all six verdicts landed at **PILOT 6.5–7/10** — the core
+holds, the integration layer is thin. The wave-1 ledger, ranked:
+
+1. **Fail-safes with holes** — FIXED round 17 (same push): `bid()`
+   explosions killed the whole tick loop; a malformed arbiter ANSWER
+   crashed the organism at `chosen[0].label`. The docs promised
+   "degrades, never crashes"; only exceptions ever did.
+2. **Persistence not trustworthy end-to-end** (Priya's top one): save
+   is non-atomic (a torn write destroys the only checkpoint), `load()`
+   never verifies the receipt it carries, `events.jsonl` is rewritten
+   whole on every save, and failure reasons were computed then thrown
+   away (the log recorded THAT, never WHY).
+3. **The organism is invisible** (Ana's top one): the five attention
+   factors — the platform's core scientific object — are never logged;
+   telemetry has no provenance (no seed/config echo, orphaned files);
+   no experiment harness above single runs; sleeper stats dropped on
+   save.
+4. **No host-integration story** (Sam's top one; Priya's tick
+   question; Morgan's game loop): `rt.bus.emit` is undiscoverable;
+   wall-clock/schedulers are everyone's first build; the
+   cron/game-loop/FastAPI patterns are folklore, not docs (this IS
+   OPEN_QUESTIONS #7, seen from the user side).
+5. **Stale numbers everywhere** (Dana's diligence): the README
+   contradicted itself (240 vs 121 tests, seven vs eight examples,
+   "v0.2.0, the subject of this README"), CHANGELOG had no 0.4.0
+   entry, `pip show` said 0.3.0, PROCESS.md pins a Rust golden corpus
+   that is not in this repo.
+6. **attach() is a rite of passage** (Priya/Morgan): re-declaring
+   raises; live scripts are not restored by `from_json`; the real
+   pattern lives only in examples — wants idempotent `ensure_*` + a
+   migration page.
+7. **The safe seam has soft edges** (Kai): prefix stability is
+   advisory, not enforced; duplicate proposals count as accepted
+   (population bloat); one-shot search scripts never die of starvation;
+   no ScriptedProvider for CI; `rest` accepts `"nan"` (saved only by a
+   lucky `max()` clamp); v0.1's circuit breaker/retry hardening never
+   ported to the line that superseded it.
+8. **Examples that teach lossy patterns** (Morgan): example 04 reads
+   player questions from `ctx.recent(10)` racing the top-k scheduler —
+   a real ask provably never reached the graph; asks must be persisted
+   into the graph in `player_visit`.
+9. **Smaller bites**: `walk()` on an isolated node returns `[]` (recall
+   silently fails for unlinked facts); `starved` names dropped in
+   telemetry (`starved_n` only); `born` resets on load; the save
+   `version` field is written but never checked; the modding trust
+   boundary is undocumented (OQ #14); `starved_n` vs "starved" doc
+   drift.
+
+### Round 17 — fail-safe totality + the wave-1 truth pass
+
+- **The two production-fatal holes, closed.** `bid()` is now contained
+  exactly like `act()`: a raising bid, a non-iterable, a junk-bearing
+  list — each is an ERROR event with its reason, and the component
+  proposed nothing that tick (its scripts starve on their own
+  economics; the other organs are untouched — pinned by a twin-run
+  identity test). A failed action's `Outcome.note` now rides its own
+  cause-chained ERROR event; NOTE_ON stays a 2-tuple. And the arbiter's
+  ANSWER is validated like its exceptions were: anything that is not an
+  ordered subset of the very bids it was shown (wrong types, a foreign
+  look-alike, duplicates) is a failed answer — degrade to the
+  deterministic shadow, count it in `arbiter_malformed`, record it.
+  Recovery is per-tick, not a scar: a flaky arbiter that speaks
+  properly again is trusted again (benching remains the scorecard's
+  business, judged by outcomes, never by protocol stumbles).
+- **17 new tests** (`tests/test_failsafe.py`): every bid() failure
+  mode, the reason channel, all seven malformed-answer shapes,
+  twin-run shadow identity, determinism while failing, and recovery.
+  240 → 257.
+- **The truth pass rode the same push** (never ship a self-contradicting
+  README): all numbers made true (257 tests, eight examples, 176+81
+  split, v0.4.0 line, CHANGELOG 0.4.0 backfilled with an honest note,
+  pip metadata refreshed, INDEX/Makefile/AUDIT/CONTRIBUTING swept);
+  AUDIT's two now-false limitations replaced with the true ones (the
+  DAG shipped; archival shipped). The quickstart BLOCKER is fixed
+  (`Tiny(rt)` crashed on first copy-paste — `Tiny()` now) and its
+  tensions now print a sawtooth, not a pinned zero: relief is
+  threshold-gated, so the doc teaches homeostasis by showing it.
+  Verified by executing the doc's code verbatim
+  (`scripts/verify_quickstart.py` pattern — docs code must run, not
+  read pretty).
+- **Tooling lessons for future sessions** (the `[m` family): the edit
+  layer EATS TABS — Makefiles must be patched via `sed`, never the
+  edit tool; and a multi-edit here applies earlier edits before
+  reporting a later miss, so re-grep the file after every batch.
+- **Next rounds, from the ledger**: 18 — the machine-checked truth gate
+  (`scripts/check_docs.py` in CI: CHANGELOG-top == pyproject version,
+  every README count generated from the tree; PROCESS/AUDIT full
+  reconciliation); 19 — persistence trustworthiness end-to-end (atomic
+  temp+rename saves, `load()` verifies the receipt at the door,
+  bounded event retention); 20 — the measurable organism (per-tick
+  market log with the five factors, run manifests, seed sweeps in
+  `run_rounds.py`); 21 — host integration (tick drivers + recipes:
+  cron, game loop, FastAPI lifespan; example-04's lossy read fixed);
+  22 — the safe seam (orchestrator/provider hardening, ScriptedProvider,
+  duplicate-rejection economics); then wave-2 re-play-test with fresh
+  personas to verify it all landed as experienced.

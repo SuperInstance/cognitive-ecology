@@ -8,7 +8,9 @@ Jev style — into that hook.
 The contract, enforced by the executive:
 * the arbiter sees only LIVE contenders (vetoed bids never reach it),
 * it may only select/reorder among them,
-* on any failure it degrades to the deterministic top-k silently.
+* on any failure — an exception OR a malformed return (wrong types, a
+  foreign look-alike bid, duplicates) — it degrades to the deterministic
+  top-k, counted in ``arbiter_malformed`` and recorded as an ERROR event.
 
 The question shape: one ``choice`` question over the contender labels,
 with the state carrying a cache-stable digest of the market (labels,

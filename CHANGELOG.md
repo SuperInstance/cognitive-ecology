@@ -4,6 +4,64 @@ All notable changes to cognitive-ecology. Format follows
 keepachangelog.com; versioning is semantic-ish (pre-1.0: minor bumps for
 anything, patches for fixes).
 
+## [Unreleased]
+
+### Fixed
+- **Fail-safe totality** (round 17, found by the wave-1 red team — six
+  zero-shot engineers play-tested the repo as real users):
+  - a component whose `bid()` raises — or returns junk — no longer kills
+    the tick loop; it is contained exactly like `act()` was, recorded
+    as an `ERROR` event with the reason, and the component starves on
+    its own economics;
+  - a failed action's `Outcome.note` now reaches the event log as an
+    `ERROR` event (on-call can see *why*, not just *that*);
+  - an arbiter's ANSWER is validated like its exceptions already were:
+    a malformed return (wrong types, a foreign look-alike bid, a single
+    object, duplicates) degrades to the deterministic shadow, is
+    counted in `Executive.arbiter_malformed`, and is recorded — the
+    documented "degrades, never crashes" is now true for the whole
+    failure surface.
+
+## [0.4.0] — 2026-11-01
+
+*(Backfilled at round 17 — this release shipped as tag `v0.4.0` without
+a changelog entry; the wave-1 diligence play-test caught the gap.)*
+
+### Added
+- **Society-basis federation** (ADR-0011): treaties are foreign purpose
+  references that route attestation between organisms; service keeps
+  the beneficiary's books fresh through its own re-attestation
+  economics; provider death propagates hard (question + exchange
+  receipt, treaty broken), neglect propagates soft (the beneficiary's
+  own reaper); the federation auditor detects forged service and
+  missed propagations.
+- **The WHY DAG** (ADR-0012, closes OPEN_QUESTIONS #1): multi-parent
+  purposes with best-path (OR) semantics; path-survivor cascades with a
+  fixpoint (no over-cascade, no under-cascade); stamping serves the
+  whole DAG lineage; the auditor replays DAG bases; trees keep
+  bit-for-bit v0.2 semantics.
+- **The outcome-arbiter** (ADR-0013, closes OPEN_QUESTIONS #3): the
+  delegated tie-break is scored by realized outcomes — calibration
+  (Brier) plus value vs the action base rate; a miscalibrated or
+  value-destroying arbiter is benched to the deterministic shadow with
+  a receipt, announced once. Live round 014 (jev, 60 ticks): benched at
+  tick 25 on Brier 0.307 while value-positive.
+- **Journal compaction** (ADR-0014, closes OPEN_QUESTIONS #13): keep the
+  last stamp per (node, ALIVE window, provenance) — exact replay
+  equivalence, receipted and chain-covered; journal holds at 4 entries
+  across 10 epochs of 1k ticks (vs 60k growing), verify ~0 ms flat.
+- 61 new tests (179 → 240).
+
+### Fixed
+- Three-phase equal-tick replay ordering (found by the example-08
+  play-test): to-ALIVE transitions → stamps → other transitions.
+- Monotonic heartbeats + epoch-aware cursor resync (found by the society
+  soak): a stale stamp never rewinds freshness; exchange cursors survive
+  journal compaction instead of silently starving a beneficiary for
+  ~500 ticks.
+- Red-team hardening (round 011): sole-ness as a fact, doubter
+  provenance on every `question()`.
+
 ## [0.3.0] — 2026-10-31
 
 ### Added

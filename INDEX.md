@@ -44,6 +44,9 @@ This file is for finding things fast.
 | `examples/03_decision_desk/` | finance | decision models; commitments; WHY-gated action |
 | `examples/04_game_npc/` | games | memory across restarts (save/load/adopt) |
 | `examples/05_personal_journal/` | personal | memory finds the story; nag with manners |
+| `examples/06_attestation_economy/` | economics | use it or lose it: served vs unserved purpose, lapse, parole |
+| `examples/07_audit_and_archive/` | audit | tamper with history and get caught; cold storage that is not deletion |
+| `examples/08_society/` | society | delegated purpose: treaties, soft neglect, hard death, federation receipts |
 
 ## Docs
 
@@ -61,11 +64,12 @@ This file is for finding things fast.
 | `docs/tutorials/tutorial_02_script_ecology.md` | birth, starvation, death, dreams |
 | `docs/tutorials/tutorial_03_attention_market.md` | controlled experiments on the factors |
 | `docs/tutorials/tutorial_04_llm_agents_and_caching.md` | LLM citizens + the caching game |
+| `docs/ADRs/` | 14 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment, the ballast) |
 
 ## The v0.1 research line (`src/ecology/` — kept as provenance)
 
 A parallel implementation from an earlier line of work; installed and
-tested alongside the v0.2 kernel (81 of the 121 tests). Preserved intact.
+tested alongside the kernel (81 of the 257 tests). Preserved intact.
 
 | Path | What it is |
 |---|---|
@@ -88,7 +92,7 @@ tested alongside the v0.2 kernel (81 of the 121 tests). Preserved intact.
 | `MANIFESTO.md` | why this exists |
 | `AUDIT.md` | self-audit matrix + external-audit section |
 | `OPEN_QUESTIONS.md` | the honest research frontier |
-| `CHANGELOG.md` | 0.1.0 → 0.2.0 |
+| `CHANGELOG.md` | 0.1.0 → 0.4.0 (+ Unreleased) |
 | `CONTRIBUTING.md` | small steps, tests, no secrets, play-tests |
 | `bootstrap.sh` | create the GitHub repo + first push (PAT from env) |
 | `Makefile` | setup / test / world / examples / guard |

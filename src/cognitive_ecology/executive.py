@@ -18,6 +18,14 @@ The outcome-arbiter extension (ADR-0013): a ``scorecard`` scores the
  delegated judgment by realized outcomes; a benched arbiter is skipped
  silently (the fail-safe ADR-0009 guaranteed) and the benching is
  announced once as a DECISION event — paid judgment must earn its keep.
+
+Round 17 closed the last hole in the fail-safe (found by the wave-1
+red team): the arbiter's ANSWER is now validated like its exceptions
+already were. Anything that is not an ordered subset of the very bids
+it was shown — wrong types, a foreign look-alike bid, a single object,
+duplicates — is a FAILED answer, not a crash: the deterministic shadow
+stands for that tick, the count lands in ``arbiter_malformed``, and an
+ERROR event records it.
 """
 from __future__ import annotations
 
@@ -79,6 +87,7 @@ class Executive:
         self.last_clear: Optional[ClearResult] = None
         self.last_divergence = 0
         self.arbiter_calls = 0
+        self.arbiter_malformed = 0  # answers that failed validation (round 17)
         self.last_arbiter_context: Optional[ArbiterContext] = None
         self._bench_announced = False
 
@@ -120,6 +129,27 @@ class Executive:
                         chosen = self.arbiter(live, k)
                     except Exception:
                         chosen = None  # a failing arbiter degrades, never crashes
+                    if chosen is not None and \
+                            self._validate_choice(chosen, live, k) is None:
+                        # round 17 (wave-1 red team): a wrong-type ANSWER used
+                        # to crash the organism further down (at
+                        # ``chosen[0].label`` / ClearResult). Now it is a
+                        # FAILED answer — same treatment as an exception:
+                        # degrade to the deterministic shadow for this tick.
+                        # The organism must never die because judgment
+                        # misbehaved; judgment that cannot speak the
+                        # protocol loses the market's ear.
+                        self.arbiter_malformed += 1
+                        if self.bus is not None:
+                            self.bus.emit(
+                                EventKind.ERROR,
+                                ("arbiter", "malformed return",
+                                 f"call #{self.arbiter_calls}: expected an "
+                                 f"ordered subset of the {len(live)} live "
+                                 f"bids"),
+                                src="executive", ts=ts,
+                            )
+                        chosen = None
                     if chosen is not None:
                         chosen_ids = [id(b) for b in chosen]
                         default_ids = [id(b) for b in live[:k]]
@@ -159,3 +189,31 @@ class Executive:
                 seq = ev.seq
             decisions.append(Decision(bid=b, status=status, event_seq=seq))
         return decisions
+
+    # ------------------------------------------------------------------
+    # the arbiter's answer contract (round 17)
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _validate_choice(chosen, live, k):
+        """Is the arbiter's answer a legal ordering of bids it was shown?
+
+        Legal means: a non-empty list/tuple whose items are — by
+        identity, not equality — bids from ``live``, with no duplicates.
+        A foreign bid with identical fields is still foreign (it is not
+        the object the market priced). Anything else is a failed answer
+        and the caller degrades to the deterministic shadow for the
+        tick; it is never a crash.
+        """
+        if not isinstance(chosen, (list, tuple)):
+            return None
+        if len(chosen) < 1:
+            return None
+        live_ids = {id(b) for b in live}
+        seen: set = set()
+        for b in chosen:
+            if not isinstance(b, AttentionBid) or id(b) not in live_ids:
+                return None
+            if id(b) in seen:  # one bid cannot fill two slots
+                return None
+            seen.add(id(b))
+        return list(chosen)

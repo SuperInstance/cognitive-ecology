@@ -30,6 +30,12 @@ Components
 A component is anything with ``id``, ``why_node``, ``bid(ctx)`` and
 ``act(ctx, label)``. It receives a ``WorldSnapshot`` (never the runtime
 itself), which keeps components small, testable, and replacable.
+
+A component that misbehaves is contained, never fatal (round 17): a
+raising ``bid()``/``act()`` — or a bid returning junk — is recorded as
+an ``ERROR`` event and the tick goes on. The other components keep
+running; the broken one starves on its own economics. The body
+survives its organs.
 """
 from __future__ import annotations
 
@@ -237,12 +243,42 @@ class Runtime:
 
         ctx = WorldSnapshot(self)
 
-        # 2 + 3. heartbeat gate, then bids
+        # 2 + 3. heartbeat gate, then bids.
+        #
+        # Fail-safe totality (round 17, wave-1 red team): a broken organ
+        # must not stop the heart. ``bid()`` is contained exactly like
+        # ``act()``: a raising bid, or a bid returning junk, is recorded
+        # as an ERROR event and the component simply proposed nothing
+        # this tick — its scripts then starve on their own economics
+        # (fail -> EMA drops -> loses the market -> dies into the
+        # necrology with its record). The log says WHY, not just THAT.
         all_bids: list = []
         for comp in self._components.values():
             if not self.why.why_should_this_run(comp.why_node):
                 continue
-            all_bids.extend(comp.bid(ctx))
+            try:
+                offered = comp.bid(ctx)
+                if not isinstance(offered, (list, tuple)):
+                    offered = list(offered)  # generators OK; junk raises here
+            except Exception as exc:  # the body survives its organs
+                self.bus.emit(
+                    EventKind.ERROR,
+                    (comp.id, "bid", f"{exc.__class__.__name__}: {exc}"),
+                    src=comp.id, ts=t,
+                )
+                continue
+            # protocol check: only real bids enter the market — a
+            # component returning look-alikes (dicts, strings, ...) gets
+            # them dropped, counted, and announced. Never fatal.
+            bad = [b for b in offered if not isinstance(b, AttentionBid)]
+            if bad:
+                self.bus.emit(
+                    EventKind.ERROR,
+                    (comp.id, "bid", f"dropped {len(bad)} non-bid item(s)"),
+                    src=comp.id, ts=t,
+                )
+            all_bids.extend(
+                b for b in offered if isinstance(b, AttentionBid))
 
         # 4 + 5. arbitrate and act
         decisions = self.executive.arbitrate(all_bids, top_k=self.top_k, ts=t)
@@ -284,6 +320,15 @@ class Runtime:
                 EventKind.NOTE_ON, (d.bid.label, 1 if out.ok else 0),
                 src=d.bid.src, ts=t, cause=d.event_seq,
             )
+            if not out.ok and out.note:
+                # the failure's REASON belongs in the log (round 17: on-call
+                # could see THAT an action failed, never WHY). NOTE_ON stays
+                # a 2-tuple — the reason is its own ERROR event, cause-chained
+                # to the same decision.
+                self.bus.emit(
+                    EventKind.ERROR, (d.bid.label, "act", out.note),
+                    src=d.bid.src, ts=t, cause=d.event_seq,
+                )
         self._current_cause = None
 
         # 6. ecology bookkeeping (starvation counts, deaths)

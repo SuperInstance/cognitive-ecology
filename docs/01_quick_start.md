@@ -23,10 +23,15 @@ rt = Runtime(seed=7, top_k=1)                      # L0: a body, 1 action/tick
 rt.declare_why("understand why I run", node_id="why:root")   # L6: purpose
 rt.tensions.add("curiosity", growth=0.05)                    # drives
 
+def _observe(ctx):                  # the action: look, ease the drive
+    if ctx.tensions.level("curiosity") > 0.3:   # only when it has built up
+        ctx.tensions.relieve("curiosity", 0.4)
+    return Outcome(True, "looked")
+
 rt.ecology.spawn(Script(                                     # L4: a behavior
     name="observe", why_node="why:root", owner="tiny",
     relieves=("curiosity",),
-    act=lambda ctx: Outcome(True, "looked"),
+    act=_observe,
 ), tick=0)
 
 class Tiny:                                    # a component relays its scripts
@@ -34,7 +39,7 @@ class Tiny:                                    # a component relays its scripts
     def bid(self, ctx):  return ctx.ecology.bids(ctx, owner="tiny")
     def act(self, ctx, label): return ctx.ecology.fire(label, ctx)
 
-rt.register(Tiny(rt))
+rt.register(Tiny())               # a plain instance — no constructor args
 for report in rt.run(10):
     print(report.tick, report.ran, report.tensions)
 ```
@@ -43,6 +48,11 @@ Every tick the runtime asks `why_should_this_run()`; the script bids for
 attention (`urgency × justification × opportunity × novelty ×
 expected_value`); the market clears the winner; memory consolidates the
 tick's events into the world graph.
+
+Watch `report.tensions`: curiosity rises, `observe` eases it, and the
+level *oscillates* instead of climbing — that is homeostasis. A drive
+pinned at 0 or at 1 is a diagnosis, not a design (see
+[07_playbook.md](07_playbook.md)).
 
 ## 3. The ten-minute tour (recommended next)
 
@@ -80,4 +90,4 @@ session that measures cached tokens and estimated savings
 | use decision models (typesafe.ai-style) | [08_decision_models.md](08_decision_models.md) |
 | run your own play-tests | [07_playbook.md](07_playbook.md) + [templates/scenario_template.md](../templates/scenario_template.md) |
 | build something now | [tutorials/](tutorials/) — four hands-on tutorials |
-| browse runnable examples | [examples/](../examples/) — five domains, all keyless-runnable |
+| browse runnable examples | [examples/](../examples/) — eight organisms, all keyless-runnable |

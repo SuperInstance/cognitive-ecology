@@ -32,7 +32,7 @@ Every load-bearing claim in the docs, with its evidence:
 | 20 | Identity commitments are hash-chained; tampering breaks verify(); introspect is stable within a session | `test_identity_chain_and_stable_introspect` | ✅ tested |
 | 21 | Registration without a WHY node is a hard error | `test_registering_without_why_is_an_error` | ✅ tested |
 | 22 | The ten-minute tour runs end-to-end, story intact | `python experiments/minimal_world.py` (run in CI via `make world`) | ✅ verified in build |
-| 23 | All five examples run keyless | `examples/*/main.py` (all executed during the 2026-10-31 build) | ✅ verified in build |
+| 23 | All eight examples run keyless | `examples/*/main.py` (executed in CI on every push) | ✅ verified in build |
 | 24 | No secrets in the tree | CI secret-scan step + `make guard` | ✅ wired (see note) |
 | 25 | DeepInfra/Hy4 pricing + caching claims ($0.834 / $0.042 / $2.501 per 1M) | checked against deepinfra.com model page on 2026-10-31; dogfood journal shows real `cached_tokens` | ✅ verified live (re-check before big spend) |
 | 26 | No horizon configured → v0.2 justification semantics bit-for-bit | `tests/test_reattestation.py::test_no_horizon_keeps_v02_semantics_forever` | ✅ tested |
@@ -73,8 +73,9 @@ them in ~3s.
 
 - **Single-process.** No async tick sources, no wall-clock integration;
   ticks are counted, not scheduled.
-- **WHY is a tree, not a DAG.** Shared purpose (multi-parent) is
-  deferred by design; see OPEN_QUESTIONS.md #1.
+- **Weighted/majority WHY parents are unexplored.** Multi-parent DAG
+  purposes shipped in v0.4 (ADR-0012, best-path semantics); weighted
+  parents and majority semantics remain open (OPEN_QUESTIONS.md #1).
 - **Script mutation is parameter-only.** Behavior-level novelty comes
   only from LLM proposals within the action library.
 - **Memory consolidation is heuristic.** No abstraction/schema formation
@@ -82,8 +83,9 @@ them in ~3s.
 - **Typesafe/decision-model client is EXPERIMENTAL.** Protocol is stable;
   the HTTP client's request shape must be checked against your
   provider's current schema (docs/08).
-- **Archival policy for ancient DEAD nodes** does not exist; nothing is
-  ever moved to cold storage (see OPEN_QUESTIONS.md #6).
+- **Archival exists (v0.3, ADR-0010)** with conservative eligibility
+  and a recorded two-act restoration — but the policy is age-based
+  only; smarter sweeps remain open.
 - **The `runs/` telemetry directory** is gitignored output, not state
   management; long-lived organisms need a real storage story.
 
