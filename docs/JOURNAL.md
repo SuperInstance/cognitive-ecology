@@ -119,3 +119,57 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
 
 - Tests: 99 green · Corpus: 15 golden pairs · Live calls: 33 panel turns +
   5 decision gates · Panel spend: ~$0.116 · Commits: 5
+
+## 2026-10-31 — session two: the parallel line becomes the organism (v0.2.0)
+
+- **The merge decision.** Two development lines had grown in parallel: the
+  research line (`src/ecology`, session one) and the organism line
+  (`src/cognitive_ecology`). Instead of one absorbing the other, both were
+  kept: the research line intact as provenance (its alternative WHY
+  formalism, the teacher layer, the panel receipts), the organism line as
+  the target for all new work. Both suites run green together — 121 tests
+  (40 new + 81 preserved).
+- **The complete kernel**: runtime, events, world graph, memory, script
+  ecology, attention market, executive, WHY conservation tree, identity
+  attractor, sleep, tensions, simulations. Zero runtime dependencies, zero
+  LLM required — the organism is fully alive without any teacher.
+- **Three semantics found by playing, not by design:** (1) the veto law —
+  a sated drink script in example 01 kept drinking forever because its
+  zero-attention bid still cleared in an empty market; now zero-attention
+  bids never clear, anywhere. (2) proposer starvation — dogfooding showed
+  successful spawned scripts outcompeting their own proposer, fixed with a
+  staleness drive. (3) dream-name collisions — found by test, fixed with
+  generation-counted unique names.
+- **The agents subpackage**: OpenAI-compatible providers (DeepInfra panel,
+  `tencent/Hy4-preview` default), deterministic MockProvider,
+  `StablePrefixSession` with token/cache journaling, and a safe audited
+  action library (observe/note/search/message/rest) — the LLM enters as a
+  citizen under the same conservation law, not as a god process.
+- Five keyless examples, agent/scenario templates seeded from dogfooded
+  ideation, the docs suite (8 guides + 4 tutorials), the build self-audit
+  (25 claims, each with its test), and the dogfood journals from the
+  Hy4-preview session that seeded the scenario catalog.
+
+## 2026-10-31 — session three: recovery, CI, and the road to v0.3
+
+- **Sandbox recycle cost the repo its `.git`.** Recovery: re-init, fetch,
+  reconcile against the remote — the local tree was strictly ahead (204
+  changed files, zero deletions), pushed as four grouped commits
+  (`c978db7` kernel, `e1763fa` examples, `d72afea` docs + evidence,
+  `78e2f03` tooling).
+- **CI broke on `httpx`.** The teacher-layer tests import it; the
+  "zero-dependency" claim was about the kernel, not the dev toolchain.
+  Fixed honestly: `dev` and `llm` extras declared (`4fbc483`); the kernel
+  itself stays zero-dep. All three Python versions green.
+- **A forensic lesson worth pinning.** The CI workflow's branch filter
+  looked corrupted (`branches: ain]`) through every lens — cat, grep,
+  python repr, even the GitHub API — yet hex dumps proved the bytes were
+  `[main]` all along: **the tool gateway's display layer eats the two
+  bytes `[m` from output**, so `[main]` renders as `ain]`. Thirty minutes
+  of "fixing" a file that was already correct. Rule adopted: *verify
+  bytes via hex (od/jq-escaped), never raw display.*
+- **Plan for this session**, in rounds: (2) re-attestation economics in
+  the WHY kernel — the gap the live panel found independently; (3) live
+  panel round 004 against the design, Hy4-preview with cache gaming;
+  (4) pluggable attention arbitration with decision models; (5) honest
+  archival; (6) examples 06–08; (7) the soak test; (8) v0.3.0.
