@@ -151,3 +151,44 @@ of society history offline).
 - An organism in a society carries exchange receipts it cannot produce
   alone — proof, on its own books, that somebody else served its
   purpose (and that it noticed when they stopped).
+
+## Amendments (round 011 — the society under attack)
+
+Live red-team (Hy4-preview, 4 iterations, gated by jev; see
+[library/rounds/011-society-under-attack.md](../library/rounds/011-society-under-attack.md))
+found two real holes, both fixed:
+
+1. **Sole-ness is a fact, not a declaration.** The original design let
+   the beneficiary *declare* `sole_basis=False`, and only declared-sole
+   treaties propagated hard on provider death — so a beneficiary whose
+   only servant died could dodge the question by checking a box. Fix:
+   when a treaty breaks by provider death, the node is questioned
+   unless **another servant ever stamped the node itself** — another
+   ACTIVE treaty that actually routed service, or a local component.
+   Stamps on mere ancestors do not count (a sibling purpose's win
+   stamps the shared root without serving this node). Declaring
+   non-sole is free; only real service backs the declaration.
+
+2. **Doubter provenance.** `question()` now records WHO doubted
+   (`by=`, defaulting to unnamed). Society questions carry
+   `by="society"`; the books distinguish external doubt from an
+   unnamed challenger. The deeper question — who may mutate WHY at
+   all (the snapshot exposes the live tree) — is now OPEN_QUESTIONS
+   #14.
+
+3. **The live endpoint sweep.** Breaks processed from frozen log
+   slices left a one-exchange window where a treaty questioned
+   mid-exchange (by another treaty's break) was still ACTIVE on a dead
+   endpoint. The exchange now ends each treaty's processing with a
+   live sweep: no treaty walks out of an exchange active with a dead
+   endpoint — also repairing missed propagations from manual drivers.
+
+**Rebutted with the math** (round 004 style): a "shield treaty that
+never serves" contributes zero stamps — the beneficiary's freshness
+still decays and lapses on its own books; and a second *real* servant
+keeping the node alive is genuine service, not a lie. The residual
+"freshness-laundering" concern (are the provider's *actions* genuinely
+serving the purpose?) is the same boundary round 004 drew for single
+organisms: stamp authenticity binds to winning acts with recorded
+outcomes; semantic service quality is the audited action library's
+jurisdiction, now composable across organisms.

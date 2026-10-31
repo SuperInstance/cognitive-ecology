@@ -377,3 +377,41 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
 - Kernel surface: one transition (`question`), one event kind
   (`EXCHANGE`), one new module (`society.py`, zero new deps). 198
   tests green (19 new).
+
+### Round 11 — the society under attack (live red-team, round 011)
+
+- **4 iterations of Hy4-preview ($0.0086, 47% cache hit), jev-gated**
+  (steer ×3, severity ×3: the gate said "repair" twice, then "attack"
+  again — the panel smelled blood and was right).
+- **Adopted (1): sole-ness is a fact, not a declaration.** The shield
+  treaty hole: declare `sole_basis=False`, dodge hard propagation when
+  your only servant dies. The fix derives sole-ness from the journals —
+  a provider death questions the beneficiary node unless another
+  servant (an ACTIVE treaty that actually routed service, or a local
+  component) ever stamped the node ITSELF. Ancestor stamps don't count:
+  a sibling's win stamps the shared root without serving this node.
+  Pinned by three tests: the lie, the dead-weight shield, and the
+  honest second servant that still stands.
+- **Adopted (2): doubter provenance.** `question()` records WHO
+  doubted (`by="society"` from the exchange; unnamed challengers are
+  recorded as such). The books no longer just say a purpose was
+  questioned — they name the doubter.
+- **Found while repairing: the one-exchange window.** A question
+  written mid-exchange (treaty 1's break) left treaty 2 still ACTIVE
+  on a dead endpoint until the next exchange — caught by our own
+  federation auditor in the dead-weight test. The exchange now ends
+  each treaty with a live endpoint sweep: no treaty walks out of an
+  exchange active with a dead endpoint. This also self-heals missed
+  propagations from manual (non-lockstep) drivers.
+- **Rebutted with the math**: the "permanent freshness via shield
+  treaty" claim fails on its own terms — a treaty that never serves
+  contributes zero stamps, and the node still decays and lapses on its
+  own books. Freshness-laundering (are the provider's actions
+  genuinely serving?) is the same boundary round 004 drew for single
+  organisms: stamps bind to winning acts with outcomes; semantic
+  service quality is the audited action library's jurisdiction.
+- **Opened on the ledger: #14, the WHY mutation surface** — the
+  snapshot exposes the live tree, so a component can kill or question
+  a competitor's purpose with a legitimate-looking record. Provenance
+  vs capabilities vs trust: a real design question, honestly asked.
+- 202 tests green (4 new); guard clean; round receipt committed.

@@ -78,6 +78,18 @@ kernel, ordered roughly by how soon it blocks somebody.
     O(journal). When does compaction (per-epoch digest rolling) become
     necessary, and what does it cost the replay basis?
 
+14. **The WHY mutation surface.** Round 011's red team noticed that
+    `WorldSnapshot` exposes the live WhyTree — a component can call
+    `kill()` or `question()` on a competitor's purpose, and the
+    necrology records a legitimate-looking transition with no named
+    actor. The books record WHAT and WHEN; they do not bind WHO (the
+    `by` provenance on `question()` is a string, not an authority).
+    Is the right fix a capability split (read-only WHY view for
+    components; mutators held by the society/auditor), provenance on
+    every transition, or is the current trust boundary — components
+    are citizens, everything is recorded, sabotage leaves fingerprints
+    — the honest answer for a single organism's body?
+
 ## Closed questions (with their answers)
 
 - **Should zero-attention bids clear in an empty market?** No — found

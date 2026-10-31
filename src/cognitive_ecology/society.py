@@ -306,6 +306,30 @@ class Society:
     def _society_tick(self) -> int:
         return max((rt.tick_no for rt in self._members.values()), default=0)
 
+    def _has_other_servant(self, t: Treaty, b_rt) -> bool:
+        """Was the beneficiary node EVER served by anything other than
+        this treaty? (round 011: sole-ness as fact, not declaration)
+
+        A "servant" is a stamp ON THE NODE ITSELF with a different
+        provenance: a local component (its own win, or a descendant's —
+        chain-stamping makes both land here) or another ACTIVE treaty
+        that has actually routed service. Stamps on mere ANCESTORS do
+        not count: A's local work under a sibling purpose stamps the
+        shared root without ever serving this node. A dead-weight
+        treaty that never served does not count either — declaring
+        non-sole is free, but only real service backs the declaration.
+        """
+        for (_ts, nid, by) in b_rt.why.journal():
+            if nid != t.beneficiary_node or by == t.id:
+                continue
+            if by.startswith("treaty:"):
+                other = next(
+                    (o for o in self._treaties if o.id == by), None)
+                if other is None or other.status != ACTIVE:
+                    continue  # broken/revoked/unknown: not a servant
+            return True  # a local stamp, or a living second treaty
+        return False
+
     def _emit_both(self, t: Treaty, what: str, ts: int, detail: str) -> None:
         """A treaty lifecycle change is noticed by BOTH parties."""
         for name in (t.provider, t.beneficiary):
@@ -356,18 +380,26 @@ class Society:
             # provider side: B's purpose died or was questioned in B
             for rec in transitions.get(t.provider, ()):  # frozen slice
                 if rec.node_id == t.provider_node and rec.to_state in died:
-                    reason = (f"treaty {t.id} broken: provider purpose "
+                    reason = (f"{t.id} broken: provider purpose "
                               f"{t.provider}/{t.provider_node} is "
                               f"{rec.to_state.value} ({rec.reason})")
                     t.status = BROKEN
                     t.broken_at = rec.tick
                     t.broken_reason = reason
-                    # the hard path: a sole-basis delegation taking its
-                    # beneficiary's purpose with it — questioned, never
-                    # deleted, exchange receipt on A's books
-                    if t.sole_basis and b_rt.why.has(t.beneficiary_node):
+                    # the hard path: a delegation taking its beneficiary's
+                    # purpose with it — questioned, never deleted, exchange
+                    # receipt on A's books. Round 011's fix: sole-ness is a
+                    # FACT, not a declaration — a non-sole treaty whose
+                    # provider was the ONLY servant that ever stamped this
+                    # chain is effectively sole, and a declared non-sole
+                    # basis with a real second servant stays standing
+                    if b_rt.why.has(t.beneficiary_node) and (
+                            t.sole_basis
+                            or not self._has_other_servant(t, b_rt)
+                    ):
                         b_rt.why.question(
-                            t.beneficiary_node, reason, tick=rec.tick)
+                            t.beneficiary_node, reason, tick=rec.tick,
+                            by="society")
                     self._emit_both(t, "broken", rec.tick,
                                     f"{t.provider_node} {rec.to_state.value}")
                     records.append(ExchangeRecord(
@@ -380,7 +412,7 @@ class Society:
             if t.status == ACTIVE:
                 for rec in transitions.get(t.beneficiary, ()):
                     if rec.node_id == t.beneficiary_node and rec.to_state in died:
-                        reason = (f"treaty {t.id} broken: beneficiary purpose "
+                        reason = (f"{t.id} broken: beneficiary purpose "
                                   f"{t.beneficiary}/{t.beneficiary_node} is "
                                   f"{rec.to_state.value} ({rec.reason})")
                         t.status = BROKEN
@@ -396,23 +428,64 @@ class Society:
             # archival is not a necrology transition — check directly
             if t.status == ACTIVE:
                 if t.provider_node in p_rt.why.archived_ids():
-                    reason = (f"treaty {t.id} broken: provider purpose "
+                    reason = (f"{t.id} broken: provider purpose "
                               f"{t.provider_node} archived to cold storage")
                     t.status, t.broken_at, t.broken_reason = BROKEN, t_now, reason
-                    if t.sole_basis and b_rt.why.has(t.beneficiary_node):
-                        b_rt.why.question(t.beneficiary_node, reason, tick=t_now)
+                    if b_rt.why.has(t.beneficiary_node) and (
+                            t.sole_basis
+                            or not self._has_other_servant(t, b_rt)
+                    ):
+                        b_rt.why.question(t.beneficiary_node, reason,
+                                          tick=t_now, by="society")
                     self._emit_both(t, "broken", t_now, "provider archived")
                     records.append(ExchangeRecord(
                         t.id, "broken", t.provider, t.beneficiary,
                         "provider archived", t_now))
                 elif t.beneficiary_node in b_rt.why.archived_ids():
-                    reason = (f"treaty {t.id} broken: beneficiary purpose "
+                    reason = (f"{t.id} broken: beneficiary purpose "
                               f"{t.beneficiary_node} archived to cold storage")
                     t.status, t.broken_at, t.broken_reason = BROKEN, t_now, reason
                     self._emit_both(t, "broken", t_now, "beneficiary archived")
                     records.append(ExchangeRecord(
                         t.id, "broken", t.provider, t.beneficiary,
                         "beneficiary archived", t_now))
+
+            # live endpoint sweep: state changes that happened DURING
+            # this exchange (a question() another treaty's break just
+            # wrote) or between exchanges (a manual driver that never
+            # called us). The frozen slices above carry the receipts;
+            # this sweep guarantees the invariant — no treaty walks
+            # out of an exchange active with a dead endpoint.
+            if t.status == ACTIVE:
+                for side, rt, node_id in (
+                    ("provider", p_rt, t.provider_node),
+                    ("beneficiary", b_rt, t.beneficiary_node),
+                ):
+                    if not rt.why.has(node_id):
+                        continue  # archived handled above
+                    state = rt.why.node(node_id).state
+                    if state not in died:
+                        continue
+                    last = next((r for r in reversed(rt.why.necrology())
+                                 if r.node_id == node_id), None)
+                    detail = (last.reason if last else "no record")
+                    reason = (f"{t.id} broken: {side} purpose "
+                              f"{node_id} is {state.value} ({detail})")
+                    t.status, t.broken_at, t.broken_reason = (
+                        BROKEN, last.tick if last else t_now, reason)
+                    if side == "provider" and b_rt.why.has(t.beneficiary_node) and (
+                            t.sole_basis
+                            or not self._has_other_servant(t, b_rt)
+                    ):
+                        b_rt.why.question(
+                            t.beneficiary_node, reason,
+                            tick=last.tick if last else t_now, by="society")
+                    self._emit_both(t, "broken", t.broken_at,
+                                    f"{node_id} {state.value}")
+                    records.append(ExchangeRecord(
+                        t.id, "broken", t.provider, t.beneficiary,
+                        f"{node_id} {state.value}", t.broken_at))
+                    break
 
         # -- 2. route service for surviving treaties --
         for t in self._treaties:
@@ -623,7 +696,7 @@ class FederationAuditor:
             if not any(
                 r.node_id == t.beneficiary_node
                 and r.to_state is WhyState.UNKNOWN
-                and f"treaty {t.id}" in r.reason
+                and t.id in r.reason
                 for r in necro
             ):
                 receipts_ok = False

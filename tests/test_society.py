@@ -423,3 +423,84 @@ def test_lockstep_determinism_bit_for_bit():
     r1, r2 = s1.audit(), s2.audit()
     assert r1.checks == r2.checks
     assert r1.chain_head == r2.chain_head
+
+
+# ---------------------------------------------------------------------------
+# round 011 red-team fixes: sole-ness as fact, doubter provenance
+# ---------------------------------------------------------------------------
+
+def test_effective_sole_questioned_despite_non_sole_declaration():
+    """Round 011, the shield-treaty hole: declaring non-sole is free,
+    so a beneficiary whose ONLY servant died should not escape the hard
+    path by checking a box. Sole-ness is derived from the journals."""
+    a, b = _beneficiary(), _provider()
+    soc = _society(a, b, sole_basis=False)  # the LIE: non-sole, no other servant
+    soc.run(10)
+    b.why.kill("why:serve", "archive closed", tick=11)
+    soc.step()
+    # no local component, no second treaty ever stamped why:index ->
+    # effectively sole -> questioned anyway
+    assert a.why.node("why:index").state is WhyState.UNKNOWN
+    assert any("doubted by society" in r.reason for r in a.why.necrology())
+    assert soc.audit().ok
+
+
+def test_dead_weight_second_treaty_is_not_a_servant():
+    """The non-sole declaration names a second treaty that never served:
+    a dead-weight treaty backs nothing, and the books show it."""
+    a, b = _beneficiary(), _provider()
+    c = _provider(name="C", seed=31)
+    soc = Society(name="shield-test")
+    soc.join(a, name="A")
+    soc.join(b, name="B")
+    soc.join(c, name="C")
+    c.component("C.server").on = False  # C's purpose lives but never serves
+    soc.establish_treaty("B", "why:serve", "A", "why:index",
+                         "the real servant", tick=0, sole_basis=False)
+    soc.establish_treaty("C", "why:serve", "A", "why:index",
+                         "the dead-weight shield", tick=0, sole_basis=False)
+    soc.run(10)
+    b.why.kill("why:serve", "archive closed", tick=11)
+    soc.step()
+    # the shield treaty never stamped why:index, so the beneficiary was
+    # effectively sole on B -> questioned; and the live endpoint sweep
+    # breaks the shield in the SAME exchange (no treaty walks out of an
+    # exchange active with a dead endpoint)
+    assert soc.treaties()[1].status == BROKEN
+    assert "beneficiary purpose" in soc.treaties()[1].broken_reason
+    assert a.why.node("why:index").state is WhyState.UNKNOWN
+    assert soc.audit().ok
+
+
+def test_real_second_servant_backs_the_declaration():
+    """Non-sole with a REAL second servant: the declaration is honest,
+    the node stands on the surviving service."""
+    a, b = _beneficiary(), _provider()
+    c = _provider(name="C", seed=31)
+    soc = Society(name="honest-dual")
+    soc.join(a, name="A")
+    soc.join(b, name="B")
+    soc.join(c, name="C")
+    soc.establish_treaty("B", "why:serve", "A", "why:index",
+                         "primary servant", tick=0, sole_basis=False)
+    soc.establish_treaty("C", "why:serve", "A", "why:index",
+                         "secondary servant", tick=0, sole_basis=False)
+    soc.run(10)  # both servants actively stamping
+    assert a.why.justification("why:index") == 1.0
+    b.why.kill("why:serve", "primary closed", tick=11)
+    soc.run(3)   # C keeps serving; treaty:1 breaks, no question
+    assert soc.treaties()[0].status == BROKEN
+    assert a.why.node("why:index").state is WhyState.ALIVE
+    assert a.why.node("why:index").last_attested_by == "treaty:2"
+    assert soc.audit().ok
+
+
+def test_question_records_the_doubter():
+    rt = _beneficiary()
+    rt.why.question("why:index", "external challenge", tick=4, by="federation")
+    rec = rt.why.necrology()[-1]
+    assert rec.reason.endswith("(doubted by federation)")
+    # an unnamed doubter is recorded as such — the reason stands alone
+    rt2 = _beneficiary()
+    rt2.why.question("why:index", "anonymous doubt", tick=1)
+    assert rt2.why.necrology()[-1].reason == "anonymous doubt"
