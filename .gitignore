@@ -1,26 +1,42 @@
-# secrets — never commit
+# --- secrets: never commit these -----------------------------------------
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+secrets/
+.secrets*
 
-# python
+# --- python ----------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *.egg-info/
-dist/
+.eggs/
 build/
-.pytest_cache/
-.ruff_cache/
-.coverage
-coverage.xml
-htmlcov/
+dist/
 .venv/
 venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-# runtime state (world graphs, ledgers, event logs)
+# --- organism state & telemetry (output, not source) ------------------------
+runs/
+experiments/runs/
+*.state.json
+events.jsonl
+telemetry.jsonl
+
+# keep the dogfood journals (they are evidence, not noise)
+!experiments/dogfood/journal.jsonl
+
+# --- runtime ledger (export receipts to markdown, don't commit the db) ------
 data/
 
-# editors / os
-.DS_Store
+# --- editors / os -----------------------------------------------------------
 .idea/
 .vscode/
+*.swp
+.DS_Store

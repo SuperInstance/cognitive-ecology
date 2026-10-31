@@ -1,35 +1,38 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognitive-ecology"
-version = "0.1.0"
-description = "A persistent cognitive ecology: WHY (live justification) as the conservation law governing a world of processes, attention, scripts, and sleep."
+version = "0.2.0"
+description = "A zero-dependency Python kernel for agents that persist like organisms: conserved WHY, attention economics, an anti-RAG world graph, and a script ecology."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "Casey Digennaro" }]
-keywords = ["justification", "attention", "agents", "cognitive-architecture", "why"]
-dependencies = ["httpx>=0.27"]
+authors = [{ name = "cognitive-ecology contributors" }]
+keywords = [
+    "agents", "llm", "persistent-agents", "memory", "attention",
+    "cognitive-architecture", "agent-framework", "anti-rag",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Operating System :: OS Independent",
+]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6", "pytest-cov"]
+dev = ["pytest>=7"]
 
-[project.scripts]
-ecology = "ecology.cli:main"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/ecology"]
-
-[tool.ruff]
-line-length = 100
-src = ["src", "tests", "examples"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "SIM"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
 addopts = "-q"

@@ -1,74 +1,91 @@
-"""Attention economy tests: the manifesto formula, both policies, the hybrid."""
-
-from __future__ import annotations
-
-import pytest
-
-from conftest import _full_bid
-from ecology.attention import Bid, CentralPolicy, HybridPolicy, MarketPolicy, justification_weight
+"""L5 — attention economics and the executive."""
+from cognitive_ecology import AttentionBid, AttentionMarket, EventBus, Executive
+from cognitive_ecology.attention import FACTORS
 
 
-def test_manifesto_score_formula() -> None:
-    bid = _full_bid(
-        "research-cell", 5, justification=1.0, urgency=0.8, opportunity=0.5, novelty=0.7,
-        expected_value=0.9,
-    )
-    assert bid.score == pytest.approx(0.8 * 1.0 * 0.5 * 0.7 * 0.9)
+def test_attention_is_the_product():
+    b = AttentionBid(src="critter", label="forage",
+                     urgency=1.0, justification=1.0, opportunity=1.0,
+                     novelty=1.0, expected_value=0.5)
+    assert abs(b.attention - 0.5) < 1e-9
 
 
-def test_dead_justification_bids_zero() -> None:
-    bid = _full_bid("legacy", 5, justification=0.0)
-    assert bid.score == 0.0
-    assert justification_weight("dead") == 0.0
-    assert justification_weight("unknown") == 0.25
-    assert justification_weight("alive") == 1.0
+def test_any_zero_factor_vetoes():
+    """The multiplicative law: no urgency can buy past a dead WHY."""
+    b = AttentionBid(src="critter", label="griefing",
+                     urgency=1.0, justification=0.0, opportunity=1.0,
+                     novelty=1.0, expected_value=1.0)
+    assert b.attention == 0.0
 
 
-def test_market_allocates_proportionally_and_caps_at_requested() -> None:
+def test_factors_clamp_garbage():
+    b = AttentionBid(src="x", label="y", urgency=7.0, justification=-3.0,
+                     opportunity="wat", novelty=0.5, expected_value=float("nan"))
+    assert b.attention == 0.0  # garbage clamps to 0 -> veto
+    assert set(b.factors()) == set(FACTORS)
+
+
+def test_market_clears_top_k_and_counts_starvation():
+    m = AttentionMarket()
     bids = [
-        _full_bid("a", 10, justification=1),
-        _full_bid("b", 1, justification=1, urgency=0.5),
+        AttentionBid(src="a", label="low", urgency=0.2, justification=1.0,
+                     opportunity=1.0, novelty=1.0, expected_value=0.5),
+        AttentionBid(src="a", label="high", urgency=0.9, justification=1.0,
+                     opportunity=1.0, novelty=1.0, expected_value=0.9),
+        AttentionBid(src="b", label="mid", urgency=0.5, justification=1.0,
+                     opportunity=1.0, novelty=1.0, expected_value=0.7),
     ]
-    allocation = MarketPolicy().allocate(bids, budget=10.0)
-    # scores 1.0 vs 0.5 -> shares 6.67 vs 3.33, but b capped at requested=1
-    assert allocation.energy("a") == pytest.approx(10.0 / 1.5, rel=1e-6)
-    assert allocation.energy("b") == 1.0
-    assert allocation.total <= 10.0
+    for b in bids:
+        m.submit(b)
+    result = m.clear(top_k=2)
+    assert [w.label for w in result.winners] == ["high", "mid"]
+    assert [s.label for s in result.starved] == ["low"]
+    # deterministic tie-break: same attention -> by src then label
+    m2 = AttentionMarket()
+    twins = [
+        AttentionBid(src="b", label="zzz", urgency=0.5, justification=1.0,
+                     opportunity=1.0, novelty=1.0, expected_value=0.9),
+        AttentionBid(src="a", label="aaa", urgency=0.5, justification=1.0,
+                     opportunity=1.0, novelty=1.0, expected_value=0.9),
+    ]
+    for t in twins:
+        m2.submit(t)
+    r = m2.clear(top_k=1)
+    assert r.winners[0].label == "aaa" and r.starved[0].label == "zzz"
+    # the market empties after clearing
+    assert m.pending() == 0
 
 
-def test_market_gives_zero_when_no_scores() -> None:
-    bids = [Bid("a", requested=5, urgency=0.0)]  # urgency 0 -> score 0
-    allocation = MarketPolicy().allocate(bids, budget=10.0)
-    assert allocation.grants == {}
+def test_vetoed_bids_never_clear_even_in_an_empty_market():
+    """The veto law: attention 0 means NO budget spend, however idle the organism."""
+    m = AttentionMarket()
+    m.submit(AttentionBid(src="a", label="sated", urgency=0.0, justification=1.0,
+                          opportunity=1.0, novelty=1.0, expected_value=1.0))
+    result = m.clear(top_k=3)
+    assert result.winners == []          # nothing cleared
+    assert [b.label for b in result.starved] == ["sated"]  # and it starved
 
 
-def test_central_follows_priority_order() -> None:
-    bids = [Bid("low", requested=10), Bid("high", requested=10)]
-    allocation = CentralPolicy(priority=["high", "low"]).allocate(bids, budget=5.0)
-    assert allocation.grants == {"high": 5.0}  # high takes all; low starves
-
-
-def test_hybrid_reserves_governance_slice() -> None:
+def test_executive_resolves_resource_conflicts():
+    bus = EventBus()
+    market = AttentionMarket()
+    ex = Executive(market, bus=bus, max_actions=2)
     bids = [
-        _full_bid("identity", 10, justification=1),
-        _full_bid("market-a", 10, justification=1),
-        _full_bid("market-b", 10, justification=1, urgency=0.2),
+        AttentionBid(src="a", label="speak-loud", urgency=0.9, justification=1.0,
+                     opportunity=1.0, novelty=1.0, expected_value=1.0, resource="mic"),
+        AttentionBid(src="b", label="speak-soft", urgency=0.5, justification=1.0,
+                     opportunity=1.0, novelty=1.0, expected_value=1.0, resource="mic"),
+        AttentionBid(src="c", label="wave", urgency=0.4, justification=1.0,
+                     opportunity=1.0, novelty=1.0, expected_value=1.0),
     ]
-    policy = HybridPolicy(governed=["identity"], governance_share=0.3)
-    allocation = policy.allocate(bids, budget=10.0)
-    # identity is guaranteed its 30% even though it competes in the market too
-    assert allocation.energy("identity") >= 3.0
-    # market splits the remaining 7.0 by score (1.0 vs 0.2)
-    assert allocation.energy("market-a") > allocation.energy("market-b")
-    assert allocation.total <= 10.0
-
-
-def test_hybrid_governance_reserve_rolls_over_when_unclaimed() -> None:
-    bids = [
-        _full_bid("market-a", 10, justification=1),
-        _full_bid("market-b", 10, justification=1, urgency=0.2),
-    ]
-    policy = HybridPolicy(governed=["identity"], governance_share=0.3)
-    allocation = policy.allocate(bids, budget=10.0)
-    # no governed bidder this tick -> the full budget flows to the market
-    assert allocation.energy("market-a") == 10.0 * 1.0 / 1.2
+    decisions = ex.arbitrate(bids, top_k=3, ts=1)
+    by_label = {d.bid.label: d for d in decisions}
+    assert by_label["speak-loud"].status == "run"
+    assert by_label["speak-soft"].status == "yield"  # lost the mic
+    assert by_label["wave"].status == "run"
+    # DECISION events were emitted and can become causes
+    decision_events = [e for e in bus.log() if e.kind.name == "DECISION"]
+    assert len(decision_events) == 3
+    assert by_label["speak-loud"].event_seq > 0
+    # the starved list is exposed for ecology bookkeeping
+    assert ex.last_clear is not None and ex.last_clear.starved == []
