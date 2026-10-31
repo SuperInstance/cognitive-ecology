@@ -898,3 +898,49 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
   the safe seam + attach() ergonomics** (ensure_*, migration page,
   duplicate rejection at the ecology layer), then **wave-2** fresh
   personas to verify it all landed as experienced.
+
+### Round 22 — host integration: folklore becomes law (and bites back twice)
+
+- **The contract first.** "A driver owns WHEN. It must never influence
+  WHAT." `drivers.py` is the seam: `WallClockDriver` with injectable
+  sleep/monotonic (tests drive a "3-second session" in microseconds),
+  drift-free absolute-slot pacing, graceful Ctrl-C, host stops via
+  `on_tick(...) is False`, a `save_every` checkpoint cadence with no
+  redundant final write, and a `DriverReport` receipt (ticks, wall
+  seconds, stopped_by, saves, mean tps). The contract is pinned the
+  only way contracts deserve pinning: a driven life is bit-identical
+  to `rt.run(n)` — same seed, same stream, driver or no driver.
+- **The round bit its own builders, twice, honestly recorded.**
+  1. Example 09's frame-rate twin (60 fps vs 30 fps must produce the
+     same life) FAILED its own printed claim: summing 1/30 ninety
+     times gives 2.9999999999999994, and the epsilon-free accumulator
+     silently dropped the third tick. The epsilon is now in the
+     recipe with the scar visible (docs/10 § "the accumulator's
+     epsilon").
+  2. The driver's first version doubled the FIRST interval (next_at
+     off-by-one: tick 1 at t=0, tick 2 at 2Δ). The injected clock
+     made it visible as 60 ticks where 61 belonged; the test caught
+     what a real-clock smoke test would have shrugged at as jitter.
+     Both fixes shipped before the demo ever claimed to work.
+- **The world-not-bus ingest law.** Example 04's lossy read (wave-1
+  finding 8) is fixed at the pattern level: player asks are persisted
+  into the WORLD GRAPH at ingest time; the bus may narrate, but the
+  graph remembers. An ask Merle never answered now survives restarts,
+  gossip works the unanswered queue in order, and the law is written
+  into docs/10 where every host will read it. Pinned by
+  tests/test_example04_asks.py, including the no-attention-was-ever-
+  spent case and the restart case.
+- **docs/10_host_integration.md**: host-surface table (tick/run/
+  bus.emit/graph.upsert/save/load/market_log), four recipes (game
+  loop, wall-clock session, cron tick with the attach rite shown in
+  full, FastAPI lifespan), rotating checkpoints (the 20b deferral,
+  closed as a recipe), and the declared cost/determinism notes from
+  ideation 015 — including the honest pointer that the kernel has no
+  resource envelope yet (OQ #15) so drivers must set budgets and wear
+  external watchdogs. check_docs.py's guide glob grew to two digits
+  (`[0-9]*.md`) — guide 10 broke the checker's assumption, the
+  checker told on it immediately, which is the system working.
+- 306 tests (290 + 16); truth gate rippled through every claim.
+- Next: **round 23 — the safe seam + attach() ergonomics** (idempotent
+  `ensure_*` builders, the migration page, duplicate-rejection
+  economics at the ecology layer), then **wave-2** fresh personas.

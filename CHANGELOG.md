@@ -7,6 +7,26 @@ anything, patches for fixes).
 ## [Unreleased]
 
 ### Added
+- **Host drivers + the hosting guide** (round 22; wave-1 finding 4,
+  "no host-integration story"). `WallClockDriver` (zero-dep,
+  injectable clocks) ticks an organism on wall-clock intervals with
+  drift-free absolute-slot pacing, graceful Ctrl-C, host-initiated
+  stops, a checkpoint cadence, and a `DriverReport` receipt — and the
+  pinned contract underneath every recipe: a driver owns WHEN, never
+  WHAT (driven life is bit-identical to `rt.run(n)`). Guide
+  `docs/10_host_integration.md`: the host-surface table, the
+  world-not-bus ingest law, and four recipes (game loop with the
+  accumulator-epsilon lesson, wall-clock session, cron tick with the
+  attach rite, FastAPI lifespan) plus rotating checkpoints and
+  declared cost/determinism notes. Example 09 runs all three shapes
+  keyless — and caught itself: the frame-rate twin failed its own
+  identity check until the float-undershoot epsilon was added (the
+  1/30-accumulated-90-times bug), and the driver's first version
+  doubled the first interval (off-by-one in slot arithmetic, caught
+  by the injected clock). Example 04's lossy read is fixed: asks are
+  persisted into the world graph at ingest time (pinned by
+  tests/test_example04_asks.py — an unanswered ask now survives
+  restarts), and gossip works the unanswered queue in order.
 - **The market log — the observation boundary as a read model**
   (round 21, ADR-0015; wave-1 finding 3, "the organism is invisible").
   `Runtime.market_log` serializes every market clearing as it happens:
@@ -32,7 +52,8 @@ anything, patches for fixes).
   seeds and aggregates mean ± spread per metric. The sweep's first
   use found `minimal_world` is seed-invariant (nothing consumes
   randomness) — the instrument calibrated itself on day one.
-- 17 new tests (`tests/test_marketlog.py`): 290 total.
+- 17 new tests (`tests/test_marketlog.py`); 16 more in round 22
+  (`tests/test_drivers.py`, `tests/test_example04_asks.py`): 306 total.
 
 ### Added (earlier unreleased rounds)
 - **Machine-checked docs truth** (round 18, the wave-1 diligence top

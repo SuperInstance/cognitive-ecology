@@ -25,7 +25,8 @@ Checks
 * tutorials    "N hands-on tutorials" (digits or spelled out) in
                README.md equals the count of
                docs/tutorials/tutorial_*.md;
-* guides       "N guides" in README.md equals the count of docs/0*.md.
+* guides       "N guides" in README.md equals the count of
+               docs/[0-9]*.md (guide numbers reached two digits at 10).
 
 It prints one line per check (ok: actual == claimed) and exits 1 with
 a FAIL list if anything drifted. Run from anywhere; all paths resolve
@@ -159,7 +160,7 @@ def main() -> int:
     checks.append(("tutorials", f"{n_tut} on disk"))
 
     # --- guides --------------------------------------------------------
-    n_guides = len(list((ROOT / "docs").glob("0*.md")))
+    n_guides = len(list((ROOT / "docs").glob("[0-9]*.md")))
     _claim(readme, r"(\d+) guides", "README 'N guides'", failures, n_guides)
     checks.append(("guides", f"{n_guides} on disk"))
 

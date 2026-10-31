@@ -47,7 +47,7 @@ This file is for finding things fast.
 | `examples/06_attestation_economy/` | economics | use it or lose it: served vs unserved purpose, lapse, parole |
 | `examples/07_audit_and_archive/` | audit | tamper with history and get caught; cold storage that is not deletion |
 | `examples/08_society/` | society | delegated purpose: treaties, soft neglect, hard death, federation receipts |
-
+| `examples/09_host_drivers/` | hosting | game loop / wall-clock / cron + checkpoint rotation |
 ## Docs
 
 | Path | Subject |
@@ -61,6 +61,7 @@ This file is for finding things fast.
 | `docs/07_playbook.md` | play-testing method + findings log |
 | `docs/08_decision_models.md` | decision-model synergy + experiments |
 | `docs/09_market_log.md` | the observation read model + run provenance |
+| `docs/10_host_integration.md` | hosting: drivers, recipes, the world-not-bus ingest law |
 | `docs/tutorials/tutorial_01_first_world.md` | build a lighthouse keeper |
 | `docs/tutorials/tutorial_02_script_ecology.md` | birth, starvation, death, dreams |
 | `docs/tutorials/tutorial_03_attention_market.md` | controlled experiments on the factors |
@@ -70,7 +71,7 @@ This file is for finding things fast.
 ## The v0.1 research line (`src/ecology/` — kept as provenance)
 
 A parallel implementation from an earlier line of work; installed and
-tested alongside the kernel (81 of the 290 tests). Preserved intact.
+tested alongside the kernel (81 of the 306 tests). Preserved intact.
 
 | Path | What it is |
 |---|---|

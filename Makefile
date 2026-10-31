@@ -4,7 +4,7 @@
 setup:
 	pip install -e ".[dev]"
 
-## test: the whole suite (290 tests, ~2s)
+## test: the whole suite (306 tests, ~5s)
 test:
 	python -m pytest tests/ -q
 

@@ -35,15 +35,32 @@ def act_greet(ctx) -> Outcome:
 
 
 def act_gossip(ctx) -> Outcome:
-    asked = [e.payload[1] for e in ctx.recent(10)
-             if e.kind is EventKind.SIGNAL and e.payload[0] == "merle"]
+    """Answer the player's standing questions.
+
+    Reads asks from the WORLD GRAPH — where player_visit persisted them
+    at ingest time — not from the recent-event window. The bus is for
+    what HAPPENED (volatile, windowed); the graph is for what IS
+    (durable, walkable). Reading asks from the bus was the wave-1
+    "lossy pattern": an ask Merle didn't answer within ten events was
+    forgotten forever, even by reminisce after a restart.
+    """
+    questions = sorted(
+        e.dst for e in ctx.graph.edges_of("player:you")
+        if e.rel == "asked"
+    )
+    answered = {
+        e.dst for e in ctx.graph.edges_of("player:you")
+        if e.rel == "asked_about"
+    }
     topic = None
     for rumor in RUMORS:
-        if any(rumor in a for a in asked):
+        slug = rumor.replace(" ", "-")
+        # work the queue: answer a question whose rumor isn't told yet
+        if any(slug in q for q in questions) and f"rumor:{slug}" not in answered:
             topic = rumor
             break
     if topic is None:
-        return Outcome(False, "nothing asked about")
+        return Outcome(False, "nothing new asked about")
     nid = f"rumor:{topic.replace(' ', '-')}"
     ctx.graph.upsert(nid, "rumor", {"text": RUMORS[topic]}, tick=ctx.tick)
     ctx.graph.link("player:you", nid, "asked_about", tick=ctx.tick)
@@ -53,19 +70,25 @@ def act_gossip(ctx) -> Outcome:
 
 
 def act_reminisce(ctx) -> Outcome:
-    """The persistence payoff: recall what the player asked BEFORE the restart."""
-    asked = sorted(
-        e.dst for e in ctx.graph.edges_of("player:you")
-        if e.rel == "asked_about"
-    )
-    if not asked:
+    """The persistence payoff: recall what the player asked BEFORE the restart.
+
+    Reads both answered rumors (asked_about) and questions Merle never
+    got to (asked) — an unanswered ask now survives too, because it was
+    persisted at ingest time, not left on the event bus.
+    """
+    edges = sorted(ctx.graph.edges_of("player:you"), key=lambda e: e.dst)
+    answered = [e.dst for e in edges if e.rel == "asked_about"]
+    pending = [e.dst for e in edges if e.rel == "asked"]
+    if not answered and not pending:
         return Outcome(False, "no shared history yet")
-    topics = [a.replace("rumor:", "").replace("-", " ") for a in asked]
-    ctx.emit(EventKind.SIGNAL,
-             ("player:you", f"You asked me about {', '.join(topics)} before."),
-             src="merle")
+    topics = [a.replace("rumor:", "").replace("-", " ") for a in answered]
+    line = f"You asked me about {', '.join(topics)} before." if topics \
+        else "You asked me things I never got to."
+    if pending:
+        line += " (some of it I never answered!)"
+    ctx.emit(EventKind.SIGNAL, ("player:you", line), src="merle")
     ctx.tensions.relieve("nostalgia", 0.4)
-    return Outcome(True, f"remembered: {topics}")
+    return Outcome(True, f"remembered: answered={topics} pending={len(pending)}")
 
 
 class Merle:
@@ -127,8 +150,19 @@ def player_visit(rt: Runtime, label: str, asks: list) -> None:
     # the player's arrival refreshes their presence in the world graph
     rt.graph.seen(["player:you"], tick=rt.tick_no) if rt.graph.has("player:you") \
         else rt.graph.upsert("player:you", "player", {"visits": 0}, tick=rt.tick_no)
+    # THE HOST-INGEST LAW: persist asks into the WORLD, not the bus.
+    # An ask is a fact about the world (the player wants to know X);
+    # the bus only carries what happened THIS tick. An ask left on the
+    # bus is lost to the window; an ask in the graph is durable,
+    # walkable, and survives restarts whether or not Merle ever
+    # answered it.
     for ask in asks:
-        rt.bus.emit(EventKind.SIGNAL, ("merle", ask), src="player:you", ts=rt.tick_no)
+        slug = ask.replace("?", "").replace(" ", "-").lower()
+        qid = f"question:{slug}"
+        rt.graph.upsert(qid, "question", {"text": ask}, tick=rt.tick_no)
+        rt.graph.link("player:you", qid, "asked", tick=rt.tick_no)
+        rt.bus.emit(EventKind.SIGNAL, ("merle", ask),
+                    src="player:you", ts=rt.tick_no)
     reports = rt.run(4)
     for r in reports:
         if r.ran:

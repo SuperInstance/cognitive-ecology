@@ -7,7 +7,7 @@ not kings.
 
 ```
 Python >= 3.10  ·  zero runtime dependencies  ·  zero LLM required to run
-290 tests       ·  deterministic (seeded)     ·  MIT license
+306 tests       ·  deterministic (seeded)     ·  MIT license
 ```
 
 ---
@@ -183,7 +183,7 @@ cache session** that measures hit rates and savings (on
 the prompt's shape is a cost decision, so the kernel enforces the
 discipline and journals the results).
 
-## Examples (eight, all runnable keyless)
+## Examples (nine, all runnable keyless)
 
 | Example | What it shows | Run |
 |---|---|---|
@@ -195,6 +195,7 @@ discipline and journals the results).
 | [06_attestation_economy](examples/06_attestation_economy/) | use it or lose it: served vs unserved purpose, lapse, parole | `python examples/06_attestation_economy/main.py` |
 | [07_audit_and_archive](examples/07_audit_and_archive/) | tamper with history and get caught; cold storage that is not deletion | `python examples/07_audit_and_archive/main.py` |
 | [08_society](examples/08_society/) | delegated purpose: treaties, soft neglect, hard death, federation receipts | `python examples/08_society/main.py` |
+| [09_host_drivers](examples/09_host_drivers/) | hosting | game loop, wall-clock driver, cron tick, checkpoint rotation — one contract |
 
 ## Documentation
 
@@ -268,11 +269,11 @@ cognitive-ecology/
 ├── src/cognitive_ecology/       the kernel (11 modules + agents/)
 │   └── agents/                  providers, orchestrator, stable_prefix.md
 ├── experiments/                 minimal_world.py + dogfood/ artifacts
-├── examples/                    eight runnable organisms
+├── examples/                    nine runnable organisms
 ├── templates/                   agent template + play-test scenario template
-├── docs/                        9 guides + 4 tutorials
+├── docs/                        10 guides + 4 tutorials
 ├── scripts/                     run_rounds.py (telemetry), ideate.py (dogfood)
-├── tests/                       290 tests incl. conservation storms
+├── tests/                       306 tests incl. conservation storms
 ├── bootstrap.sh                 create the GitHub repo + first push (PAT via env)
 ├── Makefile                     setup / test / world / examples / guard
 └── .github/workflows/ci.yml     test matrix + secret scan
@@ -310,7 +311,7 @@ This tree carries two implementations of the same manifesto:
   receipts (`library/rounds/` — including a devil's-advocate round).
 
 Both packages install from this repo and both test suites run green
-together (`pytest tests/` → 290 passing: 209 from the kernel, 81
+together (`pytest tests/` → 306 passing: 225 from the kernel, 81
 from the v0.1 line). New work should target `cognitive_ecology`; the
 v0.1 line is preserved as research history.
 
@@ -326,7 +327,7 @@ outcomes — miscalibrated or value-destroying judgment is benched with
 a receipt), and **journal compaction** (the replay basis without the
 ballast — flat verify cost at any horizon, every compaction
 receipted and chain-covered). Soak-proven at 10,000 ticks; society
-soak at 6,000 ticks across three organisms; 290 tests.
+soak at 6,000 ticks across three organisms; 306 tests.
 
 v0.3.0 — the economics of persistence: liveness as a subscription
 (re-attestation, lapse, parole on revival), conservation as a receipt
