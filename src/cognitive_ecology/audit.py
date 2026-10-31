@@ -211,9 +211,10 @@ class ConservationAuditor:
             for _, n in sorted(nodes.items())
         ]
 
-    def chain(self, necrology, journal=()) -> str:
-        """Hash chain over necrology + attestation journal: pin the head,
-        detect ANY edit of history — including a superseded stamp."""
+    def chain(self, necrology, journal=(), compactions=()) -> str:
+        """Hash chain over necrology + attestation journal + compaction
+        receipts: pin the head, detect ANY edit of history — including
+        a superseded stamp or an unwitnessed compaction."""
         h = hashlib.sha256(b"genesis")
         for r in necrology:
             h.update(
@@ -224,6 +225,9 @@ class ConservationAuditor:
         for (tick, nid, by) in journal:
             h.update(f"{tick}|{nid}|{by}".encode("utf-8"))
             h.update(b"\x1e")
+        for c in compactions:
+            h.update(repr(tuple(c.row() if hasattr(c, "row") else c)).encode("utf-8"))
+            h.update(b"\x1e")
         return h.hexdigest()
 
     def verify(self, tree: WhyTree) -> ConservationReceipt:
@@ -231,6 +235,7 @@ class ConservationAuditor:
         necrology = tree.necrology()
         journal = tree.journal()
         archived = set(tree.archived_ids())
+        compactions = tree.compactions() if hasattr(tree, "compactions") else ()
 
         checks: dict = {}
         if not genesis:
@@ -283,13 +288,30 @@ class ConservationAuditor:
             sum(counts.values()) + len(archived)
             == len(tree.nodes()) + len(archived) == len(genesis))
 
+        # compaction accounting (ADR-0014): every receipt balances
+        # (before == kept + dropped), the journal length matches the
+        # last receipt's kept count, and dropped entries never
+        # silently exceed what the receipts admit
+        if compactions:
+            comp_ok = True
+            for c in compactions:
+                if c.entries_before != c.entries_kept + c.entries_dropped:
+                    comp_ok = False
+            last = compactions[-1]
+            # the journal may have grown since the last compaction —
+            # it must be AT LEAST the kept count (and every entry after
+            # the last compaction tick is post-compaction history)
+            if len(journal) < last.entries_kept:
+                comp_ok = False
+            checks["compaction_accounting"] = comp_ok
+
         ok = all(checks.values())
         return ConservationReceipt(
             ok=ok,
             checks=checks,
             live_digest=_digest(live_rows),
             replay_digest=_digest(hot_replay),  # hot-to-hot; cold is covered
-            chain_head=self.chain(necrology, journal),
+            chain_head=self.chain(necrology, journal, compactions),
             genesis_records=len(genesis),
             transition_records=len(necrology),
             journal_records=len(journal),

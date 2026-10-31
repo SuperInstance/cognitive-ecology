@@ -198,7 +198,7 @@ discipline and journals the results).
 | [docs/06_agents_and_providers.md](docs/06_agents_and_providers.md) | LLMs as citizens + caching economics |
 | [docs/07_playbook.md](docs/07_playbook.md) | how to play-test (and what play-testing found) |
 | [docs/08_decision_models.md](docs/08_decision_models.md) | typed-decision synergy + experiment plan |
-| [docs/ADRs/](docs/ADRs/) | 13 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment) |
+| [docs/ADRs/](docs/ADRs/) | 14 architecture decision records (the law, the economics, the proofs, the society, the DAG, the judgment, the ballast) |
 | [docs/tutorials/](docs/tutorials/) | four hands-on tutorials (first world → LLM agents) |
 
 ## FAQ (read this if you read nothing else)
@@ -326,8 +326,10 @@ The v0.4 frontier (from live ideation round 009, see
    value-destroying arbiter is benched to the deterministic shadow
    with a receipt (live round 014: jev benched at tick 25 on Brier
    0.307 while its overrides were value-positive).
-4. **Journal compaction** — per-epoch rolling digests for the growing
-   attestation journal (OPEN_QUESTIONS #13).
+4. **Journal compaction** — **SHIPPED (ADR-0014):** the last stamp per
+   (node, ALIVE window, provenance) preserves replay equivalence
+   exactly; every compaction is receipted and chain-covered; journal
+   holds at 4 entries across 10 epochs (vs 60k growing), verify ~0 ms.
 
 See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full ledger.
 

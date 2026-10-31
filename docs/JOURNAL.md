@@ -518,3 +518,28 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   keeps its job, value-destroying benched, benching degrades to the
   shadow with exactly one announcement, window prevents snap
   judgments, persistence roundtrip, veto-guard survives the wiring).
+
+### Round 15 — journal compaction: the replay basis without the ballast (ADR-0014)
+
+- **The soak's honest price, paid back.** 60k journal entries at 10k
+  ticks, verify O(journal), throughput 6.4k -> 2.3k ticks/s. The fix
+  keeps the last stamp per (node, ALIVE window, PROVENANCE): exact
+  replay equivalence (live digest == replay digest, pinned), each
+  servant's evidence survives for the society's effective-sole check,
+  and the measurement is dramatic — 4 journal entries across 10
+  epochs of 1k ticks, verify ~0 ms flat.
+- **Receipted, never silent.** Compaction is a storage transition
+  like archival: every one appends a CompactionReceipt (counts,
+  dropped digest, chain before/after) to an append-only list, the
+  auditor's hash chain covers the receipts, and a lying receipt fails
+  the new compaction_accounting check. The pre-compaction chain head
+  stays pinnable; the federation auditor's service check spans only
+  the uncompacted history, bounded by BOTH books' cutoffs.
+- **The necrology is never compacted** — it is the transition record
+  and the replay's authority for ALIVE windows; compacting it would
+  change semantics, not storage.
+- 238 tests green (10 new: bit-for-bit replay equivalence, repeated
+  compaction stability, per-provenance survival, kill/revive windows,
+  receipt tampering caught, persistence, effective-sole under
+  compaction, cross-organism derivability under compaction, bounded
+  verify cost); OQ #13 CLOSED; the 3000-tick soak holds.

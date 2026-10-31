@@ -82,10 +82,13 @@ kernel, ordered roughly by how soon it blocks somebody.
     could check, and would it catch anything the randomized storm test
     does not?
 
-13. **Journal compaction.** The attestation journal grows one entry per
-    stamped node per winning act (60k entries at 10k ticks). Verify is
-    O(journal). When does compaction (per-epoch digest rolling) become
-    necessary, and what does it cost the replay basis?
+13. ~~**Journal compaction.**~~ **CLOSED (v0.4, ADR-0014):** keep the
+    last stamp per (node, ALIVE window, provenance) — exact replay
+    equivalence, servants' evidence preserved, receipts for every
+    compaction covered by the auditor's chain. Measured: a 2-worker
+    organism's journal holds at 4 entries across 10 epochs of 1k ticks
+    (vs 60k growing), verify ~0 ms; the federation auditor spans only
+    the uncompacted history, bounded by both books' cutoffs.
 
 14. **The WHY mutation surface.** Round 011's red team noticed that
     `WorldSnapshot` exposes the live WhyTree — a component can call

@@ -666,6 +666,16 @@ class FederationAuditor:
                 (ts, nid) for (ts, nid, _by) in rt.why.journal()
             }
         by_treaty = {t.id: t for t in ledger}
+        # ADR-0014: stamps older than the relevant compaction are attested
+        # by that compaction's pinnable chain_before — check only the
+        # still-uncompacted span for cross-organism derivability. The
+        # span is bounded by BOTH books' last compactions: a beneficiary
+        # stamp at tick T can only be derived if the provider's journal
+        # still holds tick T.
+        cutoffs = {}
+        for name, rt in members.items():
+            comps = rt.why.compactions() if hasattr(rt.why, "compactions") else ()
+            cutoffs[name] = comps[-1].tick if comps else -1
         service_ok = True
         for name, rt in members.items():
             chains: dict = {}  # treaty id -> set of node ids in its beneficiary chain
@@ -673,6 +683,9 @@ class FederationAuditor:
                 if not by.startswith("treaty:"):
                     continue
                 t = by_treaty.get(by)
+                if t is not None and ts <= max(
+                        cutoffs.get(name, -1), cutoffs.get(t.provider, -1)):
+                    continue  # inside a compacted span: rides on the pinned head
                 # the stamp must belong to a real treaty naming THIS
                 # member as beneficiary — provenance is not free text
                 if t is None or t.beneficiary != name:

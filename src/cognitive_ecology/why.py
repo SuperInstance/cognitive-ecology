@@ -96,6 +96,16 @@ class WhyNode:
         return self.parents[0] if self.parents else None
 
 
+def _receipt_from_row(row) -> "object":
+    """Rehydrate a CompactionReceipt row (late import: compaction.py
+    imports why.py, so the dependency must not be at module load)."""
+    from .compaction import CompactionReceipt
+    return CompactionReceipt(
+        tick=row[0], entries_before=row[1], entries_kept=row[2],
+        entries_dropped=row[3], dropped_digest=row[4],
+        chain_before=row[5], chain_after=row[6])
+
+
 @dataclass
 class NecroRecord:
     """One line in the necrology: purpose changed hands, but never vanished."""
@@ -144,6 +154,9 @@ class WhyTree:
         # honest archival (v0.3, ADR-0010): ancient DEAD subtrees leave the
         # hot tree for cold storage — counted, manifested, restorable.
         self._archived: dict = {}  # id -> full row dict + archived_at
+        # journal compaction (v0.4, ADR-0014): deliberate, receipted
+        # exceptions to journal append-only — see compaction.py
+        self._compactions: list = []
 
     # ------------------------------------------------------------------
     # structure
@@ -672,6 +685,19 @@ class WhyTree:
     def archived_row(self, nid: str) -> dict:
         return dict(self._archived[nid])
 
+    def compactions(self) -> tuple:
+        """Every journal compaction ever performed, with receipts
+        (ADR-0014). Append-only like everything that touches history."""
+        return tuple(self._compactions)
+
+    def _replace_journal(self, kept: list, receipt) -> None:
+        """Swap in a compacted journal under a receipt. Internal — only
+        JournalCompactor (compaction.py) may call this, and only with a
+        receipt naming what was dropped. There is no other API that
+        removes a journal entry."""
+        self._journal = list(kept)
+        self._compactions.append(receipt)
+
     def _detach_subtree(self, nid: str) -> list:
         """Remove nid and its descendants from the hot tree. Internal —
         only ColdStorage (archive.py) may call this, and only for
@@ -752,6 +778,9 @@ class WhyTree:
             "now": self.now,
             "genesis": [self._genesis_row(g) for g in self._genesis],
             "journal": [list(j) for j in self._journal],
+            "compactions": [
+                list(r.row()) for r in self._compactions
+            ],
             "archived": {nid: dict(row) for nid, row in self._archived.items()},
             "nodes": [
                 {
@@ -801,6 +830,9 @@ class WhyTree:
         tree.now = data.get("now", 0)
         tree._genesis = [cls._normalize_genesis(g) for g in data.get("genesis", [])]
         tree._journal = [tuple(j) for j in data.get("journal", [])]
+        tree._compactions = [
+            _receipt_from_row(r) for r in data.get("compactions", [])
+        ]
         tree._archived = {nid: dict(row) for nid, row in data.get("archived", {}).items()}
         for nd in data["nodes"]:
             parents = tuple(nd.get("parents") or ()) or (
