@@ -1026,3 +1026,34 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
   across both runs) — the cold-clone probe, which doubles as the
   freshest-eyes test of whether the repo survives first contact.
 - 330 tests (324 + 6); truth gate rippled; next: wave-2 executed.
+
+### Round 25 — wave-2: the play-test that earned its keep
+
+- **Probe E (Zara, the arbiter's pick): all LANDED.** A true cold
+  clone (fresh venv, `pip install -e ".[dev]"`): 330 tests green,
+  quickstart and ten-minute tour run verbatim, all NINE examples
+  keyless, and the docs-truth gate refuses a deliberately rotted
+  count with exit 1. First contact with the repo is survivable.
+- **Probe B (Mateo): one REGRESSION, found live — exactly what
+  wave-2 exists to find.** The docs/10 FastAPI recipe, executed for
+  real (uvicorn, curl), hung at "Waiting for application startup":
+  the recipe put a blocking `WallClockDriver.run()` inside an asyncio
+  task, which blocks the whole event loop. The recipe had never been
+  run — it was a rumor, not a recipe. Fixed: Recipe 4 rewritten
+  around the async-native tick loop (`rt.tick()` + 
+  `await asyncio.sleep(interval)` — single-threaded, requests
+  interleave safely between ticks), with the anti-pattern called out
+  BY NAME in the guide ("never put a blocking driver in a task") and
+  pinned in `tests/test_host_recipes.py` — the app is now executed
+  live over httpx's ASGI transport (lifespan entered explicitly:
+  httpx skips lifespan events, the test does not) in every CI run.
+  fastapi joined the dev extras for exactly this.
+- **Probes A, C, D (Noor, Ines, Yuki): all LANDED.** The sweep wrote
+  manifests with sha256 output digests; market.jsonl parsed exactly;
+  summary carries the tail-honesty fields. The attach rite ran three
+  times painlessly, the statement mismatch raised, five re-proposals
+  produced four demotions and ONE script. A SIGKILL mid hot-save
+  loop left a loadable checkpoint (atomic saves held); a tampered
+  events.jsonl was REFUSED at the door by name; compaction at tick
+  200 + replay to 300 was bit-identical to the un-compacted twin.
+- 332 tests (330 + 2); the recipe fix rippled through the truth gate.

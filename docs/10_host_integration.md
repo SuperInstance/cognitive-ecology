@@ -151,25 +151,30 @@ truncates under a snapshot+receipt (round 20b).
 
 ## Recipe 4 — the web app (FastAPI lifespan)
 
-The organism ticks in a background task scoped to the app's lifespan;
-requests ingest into the world (the law above) and read from the
-market log. FastAPI is not a kernel dependency — this is a recipe.
+The organism ticks in the event loop itself — a native async loop, one
+`await asyncio.sleep(interval)` per tick. **Never put a blocking
+`WallClockDriver.run()` inside an asyncio task**: it blocks the whole
+event loop (the app never finishes startup, no request is ever served
+— this exact bug shipped in the first draft of this recipe and was
+caught by the wave-2 live probe). `WallClockDriver` is for threaded
+and process hosts; this is its async translation, same contract:
 
 ```python
-# app/main.py                                       pip install fastapi uvicorn
-import asyncio
+# app/main.py                               pip install fastapi uvicorn
+import asyncio, time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from cognitive_ecology import Runtime, WallClockDriver
+from cognitive_ecology import Runtime
 
 rt = build()                                        # your organism
-driver = WallClockDriver(interval=0.05)
+TICK_INTERVAL = 0.05                                # seconds per tick
 
-async def organism_loop():
-    # drive on wall time inside the event loop; the driver's sleeps
-    # are tiny and the loop stays responsive to requests
-    driver.run(rt, seconds=24 * 3600, save_every=200,
-               save_path="runs/organism")
+async def organism_loop(stop_after: float = 3600.0):
+    end = time.monotonic() + stop_after
+    while time.monotonic() < end:
+        rt.tick()                                   # in the loop thread:
+        await asyncio.sleep(TICK_INTERVAL)          # requests interleave
+                                                    # safely between ticks
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -181,6 +186,7 @@ app = FastAPI(lifespan=lifespan)
 
 @app.post("/ask")
 def ask(text: str):
+    # the world-not-bus law: facts go into the graph at ingest time
     qid = f"question:{abs(hash(text))}"
     rt.graph.upsert(qid, "question", {"text": text}, tick=rt.tick_no)
     rt.graph.link("user:web", qid, "asked", tick=rt.tick_no)
@@ -191,6 +197,12 @@ def state():
     return {"tick": rt.tick_no, "market": rt.market_log.summary(),
             "tensions": rt.tensions.snapshot()}
 ```
+
+Single-threaded by construction: ticks and request handlers take
+turns on the event loop, so a request can never mutate the graph
+mid-tick. (The docs' own recipe is executed against a live ASGI
+transport in `tests/test_host_recipes.py` — a recipe that has not run
+is a rumor, not a recipe.)
 
 For heavier use, run the organism in its own process and let the web
 app read its outputs (manifests + market log are files — see
