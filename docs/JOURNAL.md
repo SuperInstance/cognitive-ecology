@@ -282,3 +282,21 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   cold storage (books balanced, manifest verified); the two-act
   restoration ceremony; the whole story replays.
 - All seven examples run keyless; 179 tests green; guard clean.
+
+### Round 9 — the expanded kernel meets its research director again
+
+- **Live ideation round 009** ($0.0027, Hy4-preview, cache-first, the
+  stable prefix now describing the complete v0.3 kernel): the v0.4
+  frontier it proposed, ranked — (1) **SOCIETY-BASIS**, cross-organism
+  WHY federation with foreign purpose references, a necrology exchange,
+  and a federation auditor; justification becomes weakest-link across
+  organisms (its pinning test is sharp: A's purpose served only by B
+  lapses when B dies, with an exchange receipt on A's books); (2)
+  **WHY-DAG**, multi-parent purpose with topological replay; (3)
+  **OUTCOME-ARBITER**, scoring the delegated tie-break by realized
+  outcomes. All three adopted into the roadmap.
+- README refreshed for v0.3 (badge 179 tests, the subscription and
+  proof-carrying framing in the intro, seven examples, ADR index, the
+  v0.4 roadmap). OPEN_QUESTIONS ledger updated: #6 (honest archival) and
+  #12 (formal conservation statement) CLOSED with their answers; #3
+  advanced with the ADR-0009 result; #13 (journal compaction) opened.

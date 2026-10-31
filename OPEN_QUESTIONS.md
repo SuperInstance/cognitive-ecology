@@ -14,11 +14,12 @@ kernel, ordered roughly by how soon it blocks somebody.
    smarter estimator must stay cheap enough for per-tick use and
    deterministic enough for reproducibility.
 
-3. **Decision-model integration boundary.** Where exactly should typed
-   calibrated choices enter: market clearing? script selection?
-   tension prioritization? The experiment plan in docs/08 will answer
-   this empirically — if confidences don't track outcomes (experiment
-   2), we demote them to rankings.
+3. **Decision-model integration boundary.** **Advanced (v0.3,
+   ADR-0009):** they enter at exactly one bounded hook — the executive's
+   tie-break among live contenders (veto-guarded, fail-safe, divergence
+   counted) — plus the calibration log that scores probabilistic claims.
+   Open remainder: score the arbiter by realized OUTCOMES, not just
+   divergence (the v0.4 OUTCOME-ARBITER direction).
 
 4. **Sleep scheduling.** Idleness-triggered sleep works for the demo
    worlds. Real organisms may want scheduled consolidation (nightly),
@@ -30,10 +31,9 @@ kernel, ordered roughly by how soon it blocks somebody.
    intra-organism only. A society needs its own conservation laws
    (whose WHY wins when organisms disagree?).
 
-6. **Honest archival.** "Never deleted" scales fine for statements and
-   records, but a ten-year organism raises the question: is there an
-   archival that is *not* deletion? (Cold storage with intact necrology
-   and explicit revival ceremony?) What would make archival honest?
+6. ~~**Honest archival.**~~ **CLOSED (v0.3, ADR-0010):** cold storage
+   with conservative eligibility, balanced books, manifest biographies
+   verified by the auditor, and a recorded two-act restoration ceremony.
 
 7. **Real-time tick sources.** Everything is counted ticks. Connecting
    a heartbeat to wall-clock, message queues, or market data — without
@@ -64,6 +64,11 @@ kernel, ordered roughly by how soon it blocks somebody.
     (à la event sourcing / ledger invariants) that a theorem prover
     could check, and would it catch anything the randomized storm test
     does not?
+
+13. **Journal compaction.** The attestation journal grows one entry per
+    stamped node per winning act (60k entries at 10k ticks). Verify is
+    O(journal). When does compaction (per-epoch digest rolling) become
+    necessary, and what does it cost the replay basis?
 
 ## Closed questions (with their answers)
 

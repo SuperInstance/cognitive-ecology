@@ -7,7 +7,7 @@ not kings.
 
 ```
 Python >= 3.10  ·  zero runtime dependencies  ·  zero LLM required to run
-121 tests       ·  deterministic (seeded)     ·  MIT license
+179 tests       ·  deterministic (seeded)     ·  MIT license
 ```
 
 ---
@@ -47,7 +47,10 @@ A small kernel (one package, stdlib only) that treats an agent as an
   opportunity × novelty × expected_value`, multiplicative, where any
   zero factor vetoes;
 - a **conserved purpose** (L6 WHY): four states — alive, dead, unknown,
-  absent — never deleted, always auditable, revivable;
+  absent — never deleted, always auditable, revivable; liveness is a
+  *subscription* (serve it or lapse), and the conservation law is
+  *proof-carrying* (the replay basis reconstructs the living tree, and
+  every tamper vector is caught);
 - an **identity** (L7): a slowly-drifting self-model with a hash-chained
   commitment ledger;
 - **sleep** (L8): replay, prune, dream — offline consolidation on
@@ -170,7 +173,7 @@ cache session** that measures hit rates and savings (on
 the prompt's shape is a cost decision, so the kernel enforces the
 discipline and journals the results).
 
-## Examples (five domains, all runnable keyless)
+## Examples (seven, all runnable keyless)
 
 | Example | What it shows | Run |
 |---|---|---|
@@ -194,6 +197,7 @@ discipline and journals the results).
 | [docs/06_agents_and_providers.md](docs/06_agents_and_providers.md) | LLMs as citizens + caching economics |
 | [docs/07_playbook.md](docs/07_playbook.md) | how to play-test (and what play-testing found) |
 | [docs/08_decision_models.md](docs/08_decision_models.md) | typed-decision synergy + experiment plan |
+| [docs/ADRs/](docs/ADRs/) | 10 architecture decision records (the law, the economics, the proofs) |
 | [docs/tutorials/](docs/tutorials/) | four hands-on tutorials (first world → LLM agents) |
 
 ## FAQ (read this if you read nothing else)
@@ -291,13 +295,27 @@ v0.1 line is preserved as research history.
 
 ## Status & roadmap
 
-v0.2.0 — the kernel is complete and tested; docs, examples and the
-play-testing loop exist and are dogfooded.
+v0.3.0 — the economics of persistence: liveness as a subscription
+(re-attestation, lapse, parole on revival), conservation as a receipt
+(genesis + necrology + journal replay, hash-chained, self-vouching
+saves), honest cold storage for ancient dead purposes, delegated
+tie-breaking for calibrated decision models, and a calibration log that
+measures who is confidently wrong. Soak-proven at 10,000 ticks.
 
-Likely next (see [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full
-list): multi-parent WHY (DAG) semantics; async/real-time tick sources;
-multi-organism societies; decision-model integration experiments
-(docs/08 has the plan); archival policy for ancient DEAD nodes.
+The v0.4 frontier (from live ideation round 009, see
+[library/rounds/](library/rounds/)):
+
+1. **SOCIETY-BASIS** — cross-organism WHY federation: foreign purpose
+   references, a necrology exchange, a federation auditor; justification
+   becomes weakest-link across organisms (A's purpose served only by B
+   lapses when B dies — with an exchange receipt on A's books).
+2. **WHY-DAG** — multi-parent purpose: `PurposeNode(parents)`,
+   topological replay, any-served-parent semantics.
+3. **OUTCOME-ARBITER** — score the delegated tie-break by realized
+   outcomes, not just divergence counts; paid judgment must earn its
+   keep.
+
+See [OPEN_QUESTIONS.md](OPEN_QUESTIONS.md) for the full ledger.
 
 ## License
 
