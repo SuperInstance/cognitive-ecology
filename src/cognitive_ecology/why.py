@@ -432,9 +432,20 @@ class WhyTree:
         return node
 
     def heartbeat(self, nid: str, tick: int = 0, by: str = "") -> bool:
-        """Stamp liveness. Returns False if the node is not ALIVE."""
+        """Stamp liveness. Returns False if the node is not ALIVE.
+
+        Stamps are MONOTONIC (the round-015 society-soak fix): a stamp
+        carrying a tick older than the node's current last_beat is a
+        no-op — stale information must never rewind freshness. This is
+        what makes journal compaction safe for the society: after a
+        compaction invalidates the exchange's positional cursors, the
+        resync may re-consume already-routed stamps, and a re-routed
+        old stamp changes nothing (no state, no journal entry).
+        """
         node = self._nodes[nid]
         if node.state is WhyState.ALIVE:
+            if tick < node.last_beat:
+                return True  # stale: accepted, but nothing to learn
             node.last_beat = tick
             if by:
                 node.last_attested_by = by

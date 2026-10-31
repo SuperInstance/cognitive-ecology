@@ -197,7 +197,11 @@ class Society:
         self._treaties: list[Treaty] = []  # append-only ledger
         self._next = 0
         # how far into each member's logs the last exchange read:
-        # name -> (journal_len, necrology_len). Idempotent re-runs.
+        # name -> {"journal": pos, "necrology": pos,
+        #          "epoch": compactions_seen, "last": last consumed triple}.
+        # Idempotent re-runs. Positions are invalid across journal
+        # compactions (ADR-0014), so the epoch is tracked and the
+        # cursor resyncs when a member's journal shrinks.
         self._cursors: dict = {}
 
     # ------------------------------------------------------------------
@@ -211,7 +215,13 @@ class Society:
             raise ValueError(f"duplicate member name: {name}")
         self._members[name] = runtime
         # start watching from NOW: only post-join activity exchanges
-        self._cursors[name] = (len(runtime.why.journal()), len(runtime.why.necrology()))
+        self._cursors[name] = {
+            "journal": len(runtime.why.journal()),
+            "necrology": len(runtime.why.necrology()),
+            "epoch": len(runtime.why.compactions())
+            if hasattr(runtime.why, "compactions") else 0,
+            "last": None,
+        }
         return name
 
     def member(self, name: str):
@@ -368,13 +378,34 @@ class Society:
 
         # snapshot the new log slices once; everything below reads
         # these frozen lists, never the live logs (a question() we
-        # write mid-exchange must not be re-processed this round)
+        # write mid-exchange must not be re-processed this round).
+        # Journal compaction (ADR-0014) shrinks a member's journal and
+        # invalidates positional cursors — resync by locating the last
+        # consumed entry in the compacted journal (order is preserved,
+        # only entries drop). If it was itself dropped, re-consume the
+        # small compacted journal from the start: safe because stamps
+        # are monotonic (a re-routed old stamp is a no-op).
         stamps: dict = {}      # name -> [(tick, node_id, by)]
         transitions: dict = {}  # name -> [NecroRecord]
         for name, rt in self._members.items():
-            cj, cn = self._cursors[name]
-            stamps[name] = list(rt.why.journal()[cj:])
-            transitions[name] = list(rt.why.necrology()[cn:])
+            cur = self._cursors[name]
+            journal = list(rt.why.journal())
+            epoch = (len(rt.why.compactions())
+                     if hasattr(rt.why, "compactions") else 0)
+            if epoch != cur["epoch"] or cur["journal"] > len(journal):
+                pos = 0
+                last = cur.get("last")
+                if last is not None:
+                    for i, entry in enumerate(journal):
+                        if entry == last:
+                            pos = i + 1  # exact: resume after it
+                            break
+                cur["journal"] = pos
+                cur["epoch"] = epoch
+            stamps[name] = journal[cur["journal"]:]
+            transitions[name] = list(rt.why.necrology())[cur["necrology"]:
+                                      ] if cur["necrology"] <= len(
+                rt.why.necrology()) else []
 
         records: list = []
         died = WhyState.DEAD, WhyState.UNKNOWN
@@ -525,10 +556,11 @@ class Society:
         #        picks them up and delegation flows one hop per call —
         #        cycle-safe (A->B->A cannot loop within a fixpoint).
         for name in self._members:
-            self._cursors[name] = (
-                self._cursors[name][0] + len(stamps[name]),
-                self._cursors[name][1] + len(transitions[name]),
-            )
+            cur = self._cursors[name]
+            cur["journal"] += len(stamps[name])
+            cur["necrology"] += len(transitions[name])
+            if stamps[name]:
+                cur["last"] = stamps[name][-1]  # resync anchor
         return records
 
     # ------------------------------------------------------------------
@@ -573,7 +605,7 @@ class Society:
                 }
                 for t in self._treaties
             ],
-            "cursors": {k: list(v) for k, v in self._cursors.items()},
+            "cursors": {k: dict(v) for k, v in self._cursors.items()},
         }
 
     @classmethod
@@ -604,7 +636,20 @@ class Society:
         saved = data.get("cursors", {})
         for name in soc._cursors:
             if name in saved:
-                soc._cursors[name] = (saved[name][0], saved[name][1])
+                cur = saved[name]
+                if isinstance(cur, dict):
+                    soc._cursors[name] = {
+                        "journal": cur.get("journal", 0),
+                        "necrology": cur.get("necrology", 0),
+                        "epoch": cur.get("epoch", 0),
+                        "last": tuple(cur["last"]) if cur.get("last") else None,
+                    }
+                elif isinstance(cur, (list, tuple)) and len(cur) == 2:
+                    # legacy v0.3 cursor shape
+                    soc._cursors[name] = {
+                        "journal": cur[0], "necrology": cur[1],
+                        "epoch": 0, "last": None,
+                    }
         return soc
 
 

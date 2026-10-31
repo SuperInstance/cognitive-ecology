@@ -233,3 +233,69 @@ def test_verify_cost_stays_bounded_under_periodic_compaction():
     assert max(times) < 0.5, times
     print(f"journal sizes across 10 epochs: {sizes}")
     print(f"verify times (s): {[round(t, 3) for t in times]}")
+
+
+# ---------------------------------------------------------------------------
+# round 016: the society-soak bug — compaction vs exchange cursors
+# ---------------------------------------------------------------------------
+
+def test_exchange_survives_journal_compaction_without_a_gap():
+    """Found by the society soak: compacting a provider's journal left
+    the exchange's positional cursor pointing past the end — every
+    slice came back empty until the journal REGREW past the cursor (a
+    ~500-tick silent service gap in the soak; the beneficiary starved
+    and lapsed). The fix: epoch-aware resync (locate the last consumed
+    entry in the compacted journal) + monotonic heartbeats (a re-routed
+    old stamp is a no-op, so the resync cannot rewind freshness)."""
+    from cognitive_ecology import Society
+
+    class S:
+        def __init__(s, cid, wn):
+            s.id, s.why_node = cid, wn
+
+        def bid(s, ctx):
+            yield AttentionBid(
+                src=s.id, label=f"{s.id}:serve", urgency=0.8,
+                justification=ctx.why.justification(s.why_node),
+                opportunity=1.0, novelty=1.0, expected_value=1.0)
+
+        def act(s, ctx, label):
+            return Outcome(True, "ok")
+
+    a = Runtime(seed=1, idle_window=999, attestation_horizon=100)
+    a.declare_why("root", node_id="why:root")
+    a.declare_why("index", parent="why:root", node_id="why:index")
+    b = Runtime(seed=2, idle_window=999)
+    b.declare_why("root", node_id="why:root")
+    b.declare_why("serve", parent="why:root", node_id="why:serve")
+    b.register(S("B.s", "why:serve"))
+    soc = Society()
+    soc.join(a, name="A")
+    soc.join(b, name="B")
+    soc.establish_treaty("B", "why:serve", "A", "why:index", "d", tick=0)
+    soc.run(20)
+    assert a.why.node("why:index").last_beat == 20
+
+    JournalCompactor(b.why).compact()  # journal shrinks under the cursor
+    assert len(b.why.journal()) < 20
+
+    soc.run(20)  # routing must continue WITHOUT a gap
+    assert a.why.node("why:index").last_beat == 40
+    assert a.why.justification("why:index") == 1.0
+    assert soc.audit().ok
+    assert ConservationAuditor().verify(a.why).ok
+
+
+def test_stale_stamps_never_rewind_freshness():
+    t = WhyTree(attestation_horizon=100)
+    t.declare("root", node_id="R", tick=0)
+    t.declare("kid", parent="R", node_id="K", tick=0)
+    t.stamp_chain("K", 50, by="now")
+    assert t.node("K").last_beat == 50
+    took = t.stamp_chain("K", 20, by="late-routed-old-stamp")
+    assert took == 2  # accepted...
+    assert t.node("K").last_beat == 50  # ...but freshness never rewound
+    assert t.node("K").last_attested_by == "now"  # nor did provenance
+    # and the stale stamp did not pollute the journal
+    assert all(ts >= 50 for (ts, _nid, _by) in t.journal())
+    assert ConservationAuditor().verify(t).ok

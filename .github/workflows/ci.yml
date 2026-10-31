@@ -31,6 +31,8 @@ jobs:
         run: python experiments/reattestation_economics.py > /dev/null
       - name: Soak smoke (invariants under load)
         run: python experiments/soak.py --ticks 1500 --horizon 200 > /dev/null
+      - name: Society soak smoke (federation under load)
+        run: python experiments/society_soak.py --ticks 1200 --horizon 300 --epoch 300 > /dev/null
 
       - name: Examples run keyless
         run: |
