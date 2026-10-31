@@ -24,7 +24,6 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Optional
 
 from .dominators import IDom, reverse_dominators
 from .model import Attestation, Graph, Liveness, NodeId, Provenance, RootStatus, Status
@@ -53,7 +52,7 @@ class Evaluation:
     pred: dict[NodeId, NodeId] = field(default_factory=dict)
     #: reverse dominator tree on the alive subgraph (node -> immediate dominator)
     idom: IDom = field(default_factory=dict)
-    coverage: Optional[Coverage] = None
+    coverage: Coverage | None = None
     #: alive-attested roots that went stale (review-by + grace passed)
     stale_roots: list[NodeId] = field(default_factory=list)
     #: alive-attested roots that hard-expired via ``until``
@@ -71,7 +70,7 @@ class Evaluation:
         return counts
 
 
-def evaluate(graph: Graph, att: Attestation, as_of: Optional[str] = None) -> Evaluation:
+def evaluate(graph: Graph, att: Attestation, as_of: str | None = None) -> Evaluation:
     """Evaluate every node's status given attestations and the evaluation date.
 
     ``as_of`` is None for "no clock" (expiry fields ignored); callers that
@@ -155,14 +154,24 @@ def evaluate(graph: Graph, att: Attestation, as_of: Optional[str] = None) -> Eva
     # any depth (external audit 2026-10-30, Finding 2). Only dangling parents
     # — unattested, with no chain of their own — seed unknown.
     unknown_sources: set[NodeId] = set()
+
+    def is_dangling(node_id: NodeId) -> bool:
+        """Unattested, with no justification chain of its own: a true
+        unknown-source. Everything else derives status from its chain."""
+        return (
+            node_id not in att.roots
+            and node_id not in graph.edges
+            and node_id not in graph.conjunctive
+        )
+
     for parents in graph.edges.values():
         for parent, _prov in parents:
-            if parent not in att.roots and parent not in graph.edges and parent not in graph.conjunctive:
+            if is_dangling(parent):
                 unknown_sources.add(parent)
     for groups in graph.conjunctive.values():
         for group in groups:
             for member in group:
-                if member not in att.roots and member not in graph.edges and member not in graph.conjunctive:
+                if is_dangling(member):
                     unknown_sources.add(member)
     unknown_sources.update(stale_roots)
 

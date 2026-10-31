@@ -9,7 +9,6 @@ Only grace-period arithmetic needs real date math, and Python's stdlib
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
-from typing import Optional
 
 
 def is_valid_date(s: str) -> bool:
@@ -25,7 +24,7 @@ def is_valid_date(s: str) -> bool:
     return True
 
 
-def add_days(day: str, n: int) -> Optional[str]:
+def add_days(day: str, n: int) -> str | None:
     """Add ``n`` days to a YYYY-MM-DD string; None for invalid input."""
     if not is_valid_date(day):
         return None

@@ -13,7 +13,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional
 
 from .dates import add_days
 
@@ -62,15 +61,15 @@ class RootAttestation:
 
     id: NodeId
     status: Liveness
-    since: Optional[str] = None
-    by: Optional[str] = None
+    since: str | None = None
+    by: str | None = None
     #: Hard expiry (YYYY-MM-DD). After this date the root is dead. No grace.
-    until: Optional[str] = None
+    until: str | None = None
     #: Soft expiry (YYYY-MM-DD). After this date + 30 days of grace the root
     #: degrades to unknown until re-attested.
-    review_by: Optional[str] = None
+    review_by: str | None = None
 
-    def effective(self, as_of: Optional[str]) -> RootStatus:
+    def effective(self, as_of: str | None) -> RootStatus:
         """Effective liveness at ``as_of`` (None = no clock: expiry ignored)."""
         if self.until and as_of and self.until < as_of:
             return RootStatus.DEAD
@@ -105,7 +104,7 @@ class Graph:
     edges: dict[NodeId, list[tuple[NodeId, Provenance]]] = field(default_factory=dict)
     nodes: set[NodeId] = field(default_factory=set)
     conjunctive: dict[NodeId, list[list[NodeId]]] = field(default_factory=dict)
-    discovered: Optional[int] = None
+    discovered: int | None = None
 
     def add_edge(self, child: NodeId, parent: NodeId, provenance: Provenance) -> None:
         self.nodes.add(child)

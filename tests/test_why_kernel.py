@@ -95,7 +95,9 @@ def test_deadness_propagates_full_depth() -> None:
 
 def test_dangling_branch_beats_dead_branch() -> None:
     ev = _ev(
-        "leaf:a -> mid:b (explicit)\nmid:b -> root:dead (explicit)\nmid:b -> root:dangling (explicit)",
+        "leaf:a -> mid:b (explicit)\n"
+        "mid:b -> root:dead (explicit)\n"
+        "mid:b -> root:dangling (explicit)",
         "root:dead dead 2023-01-01 probe",
     )
     assert ev.status_of("root:dead") is Status.DEAD
@@ -162,7 +164,8 @@ def test_no_clock_ignores_expiry() -> None:
 def test_conjunctive_all_alive_confers_liveness() -> None:
     ev = _ev(
         "orderset:icu -> all-of: protocol:sepsis policy:condition-active",
-        "protocol:sepsis alive 2024-01-01 med\npolicy:condition-active alive 2024-01-01 med",
+        "protocol:sepsis alive 2024-01-01 med\n"
+        "policy:condition-active alive 2024-01-01 med",
     )
     assert ev.status_of("orderset:icu") is Status.ALIVE
 
@@ -190,7 +193,8 @@ def test_conjunctive_confers_liveness_to_explicit_children() -> None:
     ev = _ev(
         "orderset:icu -> all-of: protocol:sepsis policy:active\n"
         "alert:sepsis -> orderset:icu (explicit)",
-        "protocol:sepsis alive 2024-01-01 med\npolicy:active alive 2024-01-01 med",
+        "protocol:sepsis alive 2024-01-01 med\n"
+        "policy:active alive 2024-01-01 med",
     )
     assert ev.status_of("orderset:icu") is Status.ALIVE
     assert ev.status_of("alert:sepsis") is Status.ALIVE
@@ -239,7 +243,9 @@ def test_dominators_with_two_live_roots() -> None:
 
 def test_summary_counts() -> None:
     ev = _ev(
-        "a:alive -> root:live (explicit)\na:dead -> root:dead (explicit)\na:cand -> root:live (inferred)",
+        "a:alive -> root:live (explicit)\n"
+        "a:dead -> root:dead (explicit)\n"
+        "a:cand -> root:live (inferred)",
         "root:live alive 2024-01-01 x\nroot:dead dead 2023-01-01 x",
     )
     counts = ev.summary()

@@ -21,6 +21,8 @@ authors. Unknown fields are a parse error (strict by default).
 
 from __future__ import annotations
 
+import contextlib
+
 from .dates import is_valid_date
 from .model import Attestation, Graph, Liveness, Provenance, RootAttestation
 
@@ -43,10 +45,8 @@ def parse_graph(text: str) -> Graph:
         if line.startswith("#"):
             rest = line[1:].strip()
             if rest.startswith("discovered:"):
-                try:
+                with contextlib.suppress(ValueError):
                     g.discovered = int(rest[len("discovered:") :].strip())
-                except ValueError:
-                    pass
             continue
 
         if "->" not in line:
