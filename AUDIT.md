@@ -42,6 +42,9 @@ Every load-bearing claim in the docs, with its evidence:
 | 30 | A lapsed node cannot run and cannot self-attest; only revive(reason) restores it | `test_lapsed_node_blocked_until_revived` | ✅ tested |
 | 31 | Conservation holds under random kill/revive/lapse storms (43 nodes, 300 ticks) | `test_conservation_survives_random_storm_with_reaping` | ✅ tested |
 | 32 | Save/load round-trips horizon, last_beat, freshness, justification | `test_revived_purpose_resumes_and_persistence_roundtrips` | ✅ tested |
+| 49 | 10,000-tick soak: conservation at every audit, full verify at every 1,000 ticks, archival engaged, lapses under an idler, disk round-trip re-verified | `python experiments/soak.py --ticks 10000` (receipts above; CI pins 1,500) | ✅ verified in build |
+| 50 | Soak determinism: same seed -> identical receipts (digest + chain) | `tests/test_soak.py::test_soak_is_deterministic` | ✅ tested |
+| 51 | Pinned soak invariants under pytest | `tests/test_soak.py::test_soak_every_invariant_holds` | ✅ tested |
 | 43 | Archival eligibility is conservative (ancient DEAD, no live descendant, whole subtree) | `tests/test_archive.py::test_eligibility_is_conservative`, `::test_dead_with_live_descendant_is_not_eligible` | ✅ tested |
 | 44 | Hot + archived == ever_declared after any sweep | `test_sweep_archives_whole_dead_subtree_and_books_balance` | ✅ tested |
 | 45 | The manifest carries full biographies; the auditor verifies cold nodes against the replay | `test_nothing_is_lost_the_manifest_carries_biographies`, `test_auditor_verifies_cold_storage_against_the_replay` | ✅ tested |
@@ -59,7 +62,7 @@ Every load-bearing claim in the docs, with its evidence:
 | 37 | Saved organisms carry their own conservation receipt | `Runtime.save()` embeds it; `make audit` prints it | ✅ verified in build |
 | 33 | Revival without service buys exactly one horizon; revival with service holds | `python experiments/reattestation_economics.py` (CI-verified: 2 lapses, 2 revives, ever_declared=3) | ✅ verified in build |
 
-**Test count:** 177 as of v0.3.0 (in progress) — **40 from the v0.2 kernel**
+**Test count:** 179 as of v0.3.0 (in progress) — **40 from the v0.2 kernel**
 (`src/cognitive_ecology/`, the subject of this audit) **+ 81 from the
 preserved v0.1 research line** (`src/ecology/`, alternative WHY
 formalism + LLM teacher layer; see README "Two development lines").

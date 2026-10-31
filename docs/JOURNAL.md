@@ -256,3 +256,17 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   over the whole cold subtree. And the DEAD→DEAD restore record taught
   the auditor a new no-op transition shape, which replays cleanly.
 - 177 tests green (10 new).
+
+### Round 7 — the soak: everything at once, for a long time
+
+- **10,000 ticks, one organism, every v0.3 mechanic active.** Receipts
+  (seed 99): 2,327 ticks/s; 70,104 events; 60,000 attestation stamps;
+  22 necrology records; the hot tree held at 11 nodes while cold storage
+  took 15 (archival is doing its job); 4 lapses, 1 revive; full auditor
+  verification every 1,000 ticks — zero failures; final verify 81 ms;
+  6.8 MiB state saved, loaded, and re-verified from disk.
+- Throughput degrades gracefully with journal growth (6.4k → 2.3k ticks/s
+  from 2k → 10k ticks) — the O(journal) replay price is visible and
+  honest; compaction is future work (ADR-0008 already flags it).
+- Pinned: CI runs a 1,500-tick soak; the suite pins the invariants and
+  bit-for-bit determinism (same seed → identical receipts). 179 green.

@@ -24,6 +24,10 @@ examples:
 		echo "ok"; \
 	done
 
+## soak: the long-run invariant stress test (TICKS=10000)
+soak:
+	python experiments/soak.py --ticks $(or $(TICKS),10000)
+
 ## audit: run an organism and print its conservation receipt
 audit:
 	python -c "from experiments.minimal_world import build_world; from cognitive_ecology import ConservationAuditor; rt = build_world(7); rt.run(120); print(rt.report()); print(ConservationAuditor().verify(rt.why).summary())"

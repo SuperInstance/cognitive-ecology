@@ -7,6 +7,13 @@ anything, patches for fixes).
 ## [0.3.0] — 2026-10-31 (in progress)
 
 ### Added
+- **The soak test** (`experiments/soak.py`, `make soak`): one organism,
+  10,000 ticks, every invariant — re-attestation, probation, archival,
+  full auditor verification every 1,000 ticks, save/load re-verify.
+  Receipts (seed 99): 2,327 ticks/s, 70k events, 60k journal stamps, hot
+  tree held at 11 nodes while 15 archived, 81 ms final verify, 6.8 MiB
+  state round-tripped and re-verified from disk. Pinned in CI at 1,500
+  ticks; determinism pinned bit-for-bit by test.
 - **Honest archival** (ADR-0010, closes OPEN_QUESTIONS #6): `ColdStorage`
   sweeps ancient DEAD subtrees (dead > min_age, no living descendant,
   whole subtree together) into cold storage — counted by conservation,
