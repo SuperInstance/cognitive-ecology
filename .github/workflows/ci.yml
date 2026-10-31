@@ -9,20 +9,58 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Kernel tests (conservation, veto law, ecology, persistence)
+        run: python -m pytest tests/ -q
+
+      - name: The ten-minute organism runs end to end
+        run: python experiments/minimal_world.py --ticks 60 > /dev/null
+
+      - name: Examples run keyless
         run: |
-          python -m pip install --upgrade pip
-          pip install -e .[dev]
-      - name: Lint
-        run: ruff check src tests
-      - name: Secrets scan
-        run: python scripts/check_secrets.py
-      - name: Tests
-        run: pytest
+          for d in examples/*/; do
+            echo "== $d"; python "$d/main.py" > /dev/null || exit 1
+          done
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refuse key-shaped strings anywhere in the tree
+        run: |
+          # Fail on real-looking credentials. Docs mention env var NAMES,
+          # never values, so the tree must be permanently clean.
+          if git grep -nE "(ghp_[A-Za-z0-9]{20,}|sk-di-[A-Za-z0-9]{20,}|apikey_[A-Za-z0-9]{20,})" $(git rev-list --all) -- . 2>/dev/null; then
+            echo "::error::key-shaped string found in history"
+            exit 1
+          fi
+          if grep -rqE "(ghp_[A-Za-z0-9]{20,}|sk-di-[A-Za-z0-9]{20,}|apikey_[A-Za-z0-9]{20,})" \
+               --include="*.py" --include="*.sh" --include="*.toml" --include="*.yml" \
+               --include="*.json" --include="*.md" --include="*.example" --include="*.jsonl" . ; then
+            echo "::error::key-shaped string found in working tree"
+            exit 1
+          fi
+          echo "clean: no secrets in tree or history"
+
+      - name: .env must not exist in the tree
+        run: |
+          if [ -f .env ]; then
+            echo "::error::.env is committed; only .env.example belongs in git"
+            exit 1
+          fi
+          echo "clean: no .env committed"
