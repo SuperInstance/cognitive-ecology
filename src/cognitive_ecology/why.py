@@ -40,19 +40,35 @@ the v0.2 semantics — attest once, alive until explicitly killed — hold.
 The heartbeat question
 ----------------------
 Every tick, every component must answer ``why_should_this_run()``. A
-component whose WHY chain is broken (any ancestor DEAD or UNKNOWN) does not
-run — but it is not deleted either. It waits, questionable, revivable.
+component whose WHY chain is broken (no fully-living path to a root)
+does not run — but it is not deleted either. It waits, questionable,
+revivable.
 
-Contradictions are allowed (and detectable): a node can be ALIVE while an
-ancestor is DEAD. The organism holds beliefs it cannot fully justify —
-``contradictions()`` finds them. This is a feature: cognitive dissonance is
-information.
+Contradictions are allowed (and detectable): a node can be ALIVE while
+parts of its lineage are DEAD. The organism holds beliefs it cannot
+fully justify — ``contradictions()`` finds them. This is a feature:
+cognitive dissonance is information.
+
+Multi-parent purposes — the WHY DAG (v0.4, ADR-0012)
+-----------------------------------------------------
+A purpose may be justified by SEVERAL parents: ``declare(...,
+parents=("why:1", "why:2"))``. Verdict and justification use **best
+path** semantics: a node runs while AT LEAST ONE path to a root is
+fully ALIVE, and its justification is the strongest living path's —
+killing one parent of a jointly-justified purpose does not question
+it while the other parent's lineage still warrants it. A kill
+cascades only descendants with NO surviving path (no over-cascade);
+a cascade fixpoint handles cross-linked topologies where a deeper
+parent's cascade strands a later node (no under-cascade). Parents are
+fixed at declaration, so the DAG is acyclic by construction. Single
+parent declare(parent=...) keeps the exact v0.2/v0.3 tree semantics;
+``parent`` remains the primary (first) parent for compatibility.
 """
 from __future__ import annotations
 
 import enum
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, Sequence
 
 
 class WhyState(enum.Enum):
@@ -65,13 +81,19 @@ class WhyState(enum.Enum):
 @dataclass
 class WhyNode:
     id: str
-    parent: Optional[str]
-    statement: str
+    parents: tuple = ()                 # DAG parents, primary first
+    statement: str = ""
     state: WhyState = WhyState.ABSENT
     born: int = 0
     last_beat: int = -1
     last_attested_by: str = ""       # component whose winning act last stamped it
     probation: bool = False           # revived but not yet re-served ( parole )
+
+    @property
+    def parent(self) -> Optional[str]:
+        """The primary parent (first declared), or None for roots.
+        Kept for tree-shaped code; DAG-aware code uses ``parents``."""
+        return self.parents[0] if self.parents else None
 
 
 @dataclass
@@ -133,25 +155,39 @@ class WhyTree:
         state: WhyState = WhyState.ALIVE,
         tick: int = 0,
         node_id: Optional[str] = None,
+        parents: Optional[Sequence[str]] = None,
     ) -> WhyNode:
-        """Add a WHY node. Ids are auto-assigned (`why:1`, `why:2`, ...) unless given."""
+        """Add a WHY node. Ids are auto-assigned (`why:1`, `why:2`, ...) unless given.
+
+        ``parent=`` declares a single-parent (tree) node — the v0.2/v0.3
+        shape. ``parents=(a, b, ...)`` declares a multi-parent (DAG)
+        node, primary parent first; the two arguments are mutually
+        exclusive. Parents are fixed at declaration, which keeps the
+        purpose graph acyclic by construction.
+        """
+        if parents is not None and parent is not None:
+            raise ValueError("pass parent= (tree) or parents= (DAG), not both")
+        if parents is None:
+            parents = (parent,) if parent is not None else ()
+        parents = tuple(dict.fromkeys(parents))  # dedupe, keep order
         nid = node_id or f"why:{self._next + 1}"
         self._next += 1
         if nid in self._nodes:
             raise ValueError(f"duplicate WHY node id: {nid}")
-        if parent is not None and parent not in self._nodes:
-            raise KeyError(f"unknown parent WHY node: {parent}")
+        for p in parents:
+            if p not in self._nodes:
+                raise KeyError(f"unknown parent WHY node: {p}")
         node = WhyNode(
-            id=nid, parent=parent, statement=statement, state=state,
+            id=nid, parents=parents, statement=statement, state=state,
             born=tick, last_beat=(tick if state is WhyState.ALIVE else -1),
         )
         self._nodes[nid] = node
         self._genesis.append(
-            (nid, parent, statement, tick, state.value,
+            (nid, parents, statement, tick, state.value,
              tick if state is WhyState.ALIVE else -1)
         )
-        if parent is not None:
-            self._children.setdefault(parent, []).append(nid)
+        for p in parents:
+            self._children.setdefault(p, []).append(nid)
         self._ever_declared += 1
         return node
 
@@ -168,10 +204,12 @@ class WhyTree:
         return [self._nodes[c] for c in self._children.get(nid, []) if c in self._nodes]
 
     def roots(self) -> list:
-        return [n for n in self._nodes.values() if n.parent is None]
+        return [n for n in self._nodes.values() if not n.parents]
 
     def descendants(self, nid: str) -> list:
-        """All node ids below `nid` (BFS)."""
+        """All node ids below `nid` over ANY parent edge (BFS, deduped).
+        In a DAG a descendant may be reachable through several paths;
+        it is still one descendant."""
         out: list = []
         queue = list(self._children.get(nid, []))
         seen = {nid}
@@ -197,18 +235,60 @@ class WhyTree:
         node.state = to_state
 
     def kill(self, nid: str, reason: str = "killed", tick: int = 0) -> WhyNode:
-        """Mark DEAD. Living descendants cascade to UNKNOWN (questionable)."""
+        """Mark DEAD. Living descendants with NO surviving path cascade
+        to UNKNOWN (questionable). In a DAG a descendant kept alive by
+        another parent's lineage does NOT cascade (no over-cascade);
+        cross-linked topologies reach the answer by fixpoint (no
+        under-cascade). Trees keep the exact v0.2 behavior: every
+        living descendant cascades, in BFS order."""
         node = self._nodes[nid]
         if node.state is WhyState.DEAD:
             return node
         self._record(node, WhyState.DEAD, reason, tick)
-        for did in self.descendants(nid):
-            dn = self._nodes[did]
-            if dn.state is WhyState.ALIVE:
-                self._record(
-                    dn, WhyState.UNKNOWN, f"cascade: ancestor {nid} died ({reason})", tick
-                )
+        self._cascade_question(nid, tick,
+                               f"cascade: ancestor {nid} died ({reason})")
         return node
+
+    def _has_living_path(self, nid: str) -> bool:
+        """Is there at least one fully-ALIVE path from nid to a root?
+        (Used post-kill: DEAD/UNKNOWN links break a path; a path through
+        another living parent survives.)"""
+        stack, seen = [nid], set()
+        while stack:
+            cur = stack.pop()
+            if cur in seen:
+                continue
+            seen.add(cur)
+            n = self._nodes[cur]
+            if n.state is not WhyState.ALIVE and cur != nid:
+                continue  # this link is broken; other parents may survive
+            if not n.parents:
+                return True  # reached a living root through living links
+            stack.extend(n.parents)
+        return False
+
+    def _cascade_question(self, nid: str, tick: int, reason: str) -> None:
+        """Question every living descendant of nid that has no surviving
+        path. A single BFS pass is exact for trees (every descendant's
+        only path ran through the killed node). A DAG can strand a node
+        whose last living path ran through a *descendant* that cascades
+        later in the same sweep — so survivors are re-checked until a
+        full pass cascades nothing. Monotone (UNKNOWN only grows), so
+        the fixpoint terminates in at most one round per cascade."""
+        pending = self.descendants(nid)
+        while pending:
+            survivors = []
+            cascaded = False
+            for did in pending:
+                dn = self._nodes[did]
+                if dn.state is WhyState.ALIVE and not self._has_living_path(did):
+                    self._record(dn, WhyState.UNKNOWN, reason, tick)
+                    cascaded = True
+                elif dn.state is WhyState.ALIVE:
+                    survivors.append(did)
+            if not cascaded or not survivors:
+                break
+            pending = survivors
 
     def question(self, nid: str, reason: str, tick: int = 0,
                  by: str = "") -> WhyNode:
@@ -271,15 +351,53 @@ class WhyTree:
         return node
 
     def _cascade_revive(self, nid: str, tick: int) -> None:
-        """A revived ancestor re-resolves the questions it raised."""
-        for did in self.descendants(nid):
-            dn = self._nodes[did]
-            if dn.state is WhyState.UNKNOWN:
-                self._record(
-                    dn, WhyState.ALIVE, f"cascade: ancestor {nid} revived", tick
-                )
-                dn.last_beat = tick
-                dn.probation = True  # cascaded revivals are on parole too
+        """A revived ancestor re-resolves the questions it raised: every
+        UNKNOWN descendant that would have a fully-living path (all its
+        ancestors on some path ALIVE, the node itself excluded — its own
+        UNKNOWN-ness is what we are deciding) returns, on parole. A
+        descendant whose every path still runs through a DEAD ancestor
+        keeps its doubt (that parent's kill still stands). Trees keep
+        the exact v0.2 behavior: BFS order, everything revives; DAGs
+        reach cross-linked answers by fixpoint, like the cascade."""
+        pending = self.descendants(nid)
+        while pending:
+            remaining, revived = [], False
+            for did in pending:
+                dn = self._nodes[did]
+                if dn.state is WhyState.UNKNOWN and self._would_have_living_path(did):
+                    self._record(
+                        dn, WhyState.ALIVE, f"cascade: ancestor {nid} revived", tick
+                    )
+                    dn.last_beat = tick
+                    dn.probation = True  # cascaded revivals are on parole too
+                    revived = True
+                elif dn.state is WhyState.UNKNOWN:
+                    remaining.append(did)
+            if not revived or not remaining:
+                break
+            pending = remaining
+
+    def _would_have_living_path(self, nid: str) -> bool:
+        """Would this node have a fully-living path if it were ALIVE?
+        (Every ancestor on some path ALIVE; the node itself excluded —
+        used by the revive cascade, where the node's own state is the
+        question being decided.)"""
+        for path in self.paths(nid):
+            if all(n.state is WhyState.ALIVE for n in path[1:]):
+                return True
+        return False
+
+    def _ancestors_ids(self, nid: str) -> set:
+        """Every ancestor over ANY parent edge (the DAG union)."""
+        out: set = set()
+        stack = list(self._nodes[nid].parents)
+        while stack:
+            cur = stack.pop()
+            if cur in out or cur not in self._nodes:
+                continue
+            out.add(cur)
+            stack.extend(self._nodes[cur].parents)
+        return out
 
     def activate(self, nid: str, tick: int = 0) -> WhyNode:
         """ABSENT -> ALIVE: a draft/parked purpose starts asserting itself."""
@@ -316,12 +434,23 @@ class WhyTree:
         """Re-attest a purpose by USE: stamp every ALIVE node leaf -> root.
 
         Serving a purpose maintains its whole lineage — a running child
-        keeps its root fresh — and ends any probation along the way.
+        keeps its roots fresh — and ends any probation along the way.
+        In a DAG the lineage is the union of ALL paths: serving a
+        jointly-justified purpose maintains both of its parents' lines.
+        Stamp order is the primary path first (leaf -> root — the exact
+        v0.2/v0.3 tree order), then any extra ancestors in path order,
+        so journals stay byte-compatible for tree-shaped organisms.
         Returns how many nodes took the stamp.
         """
         took = 0
-        for n in self.chain(nid):
-            if self.heartbeat(n.id, tick, by=by):
+        order, seen = [nid], {nid}
+        for path in self.paths(nid):
+            for n in path[1:]:  # path[0] is nid itself
+                if n.id not in seen:
+                    seen.add(n.id)
+                    order.append(n.id)
+        for aid in order:
+            if self.heartbeat(aid, tick, by=by):
                 took += 1
         return took
 
@@ -329,7 +458,9 @@ class WhyTree:
     # queries
     # ------------------------------------------------------------------
     def chain(self, nid: str) -> list:
-        """The ancestry, leaf -> root."""
+        """The PRIMARY ancestry, leaf -> root (first parent at each step).
+        DAG-aware code wants ``paths()`` (all paths) or ``_ancestors_ids``
+        (the union); this stays for tree-shaped callers and readability."""
         out: list = []
         seen: set = set()
         cur: Optional[WhyNode] = self._nodes[nid]
@@ -339,20 +470,52 @@ class WhyTree:
             cur = self._nodes[cur.parent] if cur.parent else None
         return out
 
+    def paths(self, nid: str) -> list:
+        """Every path from nid to a root, each a list of WhyNodes
+        (leaf -> root), in deterministic DFS order (primary parents
+        first). A tree has exactly one path."""
+        out: list = []
+
+        def walk(cur: str, acc: list, seen: set) -> None:
+            node = self._nodes[cur]
+            if cur in seen:  # defensive: acyclic by construction
+                return
+            acc.append(node)
+            if not node.parents:
+                out.append(list(acc))
+            else:
+                for p in node.parents:
+                    walk(p, acc, seen | {cur})
+            acc.pop()
+
+        walk(nid, [], set())
+        return out
+
     def freshness(self, nid: str, tick: Optional[int] = None) -> float:
-        """Weakest-link freshness of the chain's ALIVE nodes, 0..1.
+        """Weakest-link freshness of the BEST living path, 0..1.
 
         Full freshness through the first third of the horizon (the grace
         window — a new purpose gets time to establish), then linear decay
         to zero at the horizon. With no horizon configured, always 1.0.
+        In a DAG each path is priced independently and the best wins —
+        a purpose served through either parent is fresh through that
+        parent (OR semantics, matching verdict()).
         """
         if self.attestation_horizon is None:
             return 1.0
+        return max(
+            (self._path_freshness(p, tick) for p in self.paths(nid)),
+            default=0.0,
+        )
+
+    def _path_freshness(self, path: list, tick: Optional[int]) -> float:
+        if self.attestation_horizon is None:
+            return 1.0  # no economics configured: freshness is not priced
         t = self.now if tick is None else tick
         h = self.attestation_horizon
         grace = h // 3
         worst = 1.0
-        for n in self.chain(nid):
+        for n in path:
             if n.state is not WhyState.ALIVE:
                 continue  # non-alive links are priced by justification()
             last = n.last_beat if n.last_beat >= 0 else n.born
@@ -370,32 +533,36 @@ class WhyTree:
     PROBATION_CAP = 0.5  # a revived-but-unserved purpose bids at half strength
 
     def justification(self, nid: str, tick: Optional[int] = None) -> float:
-        """How justifiable is this node's chain, 0..1.
+        """How justifiable is this node, 0..1 — the BEST living path's score.
 
-        A DEAD ancestor anywhere is a hard veto (0.0) — the purpose lineage
-        is broken. Otherwise the score is the fraction of the chain that is
-        ALIVE (UNKNOWN ancestors discount proportionally), multiplied by
-        the chain's weakest-link FRESHNESS when re-attestation economics
-        are on, and capped at PROBATION_CAP while any chain node is on
-        parole (revived without service since). Liveness attested long ago
-        is worth less than liveness maintained; liveness *asserted* without
+        A path with a DEAD ancestor anywhere scores 0 (that lineage's
+        warrant is destroyed); otherwise the path scores its alive
+        fraction (UNKNOWN ancestors discount proportionally) multiplied
+        by its weakest-link FRESHNESS, capped at PROBATION_CAP while any
+        ALIVE node on THAT path is on parole. The node's justification
+        is the strongest path's score — in a DAG a jointly-justified
+        purpose is as strong as its best living basis (OR semantics,
+        matching verdict()); a tree has exactly one path, so this is
+        the exact v0.2/v0.3 score. Liveness attested long ago is worth
+        less than liveness maintained; liveness *asserted* without
         service is worth half.
         """
         if tick is not None:
             self.now = tick  # explicit tick advances the tree's clock
-        chain = self.chain(nid)
-        if not chain:
-            return 0.0
-        if any(n.state is WhyState.DEAD for n in chain):
-            return 0.0
-        alive = sum(1 for n in chain if n.state is WhyState.ALIVE)
-        base = alive / len(chain)
-        if base <= 0.0:
-            return 0.0
-        score = base * self.freshness(nid)
-        if any(n.probation for n in chain if n.state is WhyState.ALIVE):
-            score = min(score, self.PROBATION_CAP)
-        return score
+        best = 0.0
+        for path in self.paths(nid):
+            if any(n.state is WhyState.DEAD for n in path):
+                continue  # this lineage's warrant is destroyed
+            alive = sum(1 for n in path if n.state is WhyState.ALIVE)
+            base = alive / len(path)
+            if base <= 0.0:
+                continue
+            score = base * self._path_freshness(path, tick)
+            if any(n.probation for n in path if n.state is WhyState.ALIVE):
+                score = min(score, self.PROBATION_CAP)
+            if score > best:
+                best = score
+        return best
 
     def reap(self, tick: Optional[int] = None) -> list:
         """Lapse long-unattested ALIVE nodes to UNKNOWN (never deletion).
@@ -426,28 +593,56 @@ class WhyTree:
         return lapsed
 
     def verdict(self, nid: str) -> WhyVerdict:
-        """Full answer to 'should this run?', with the blocking node named."""
-        chain = self.chain(nid)
-        path = [n.id for n in chain]
-        for n in chain:  # leaf -> root: the most proximate blocker is reported
-            if n.state is not WhyState.ALIVE:
+        """Full answer to 'should this run?', with the blocking node named.
+
+        OK iff at least ONE path to a root is fully ALIVE (OR
+        semantics). On failure the reported path is the one that got
+        furthest leaf->root (most living warrant), with its proximate
+        blocker named — a tree keeps the exact v0.2 single-path answer.
+        """
+        best_path, best_prefix, blocker = None, -1, None
+        for path in self.paths(nid):
+            prefix = 0
+            for n in path:  # leaf -> root: count the living warrant
+                if n.state is WhyState.ALIVE:
+                    prefix += 1
+                else:
+                    if best_prefix == -1 or prefix > best_prefix:
+                        best_path, best_prefix, blocker = path, prefix, n
+                    break
+            else:
                 return WhyVerdict(
-                    ok=False, reason=f"{n.state.value}:{n.id}",
-                    path=path, blocked_at=n.id, blocked_state=n.state,
+                    ok=True, reason="ok", path=[n.id for n in path]
                 )
-        return WhyVerdict(ok=True, reason="ok", path=path)
+        if best_path is None:  # no paths at all should not happen; be safe
+            return WhyVerdict(ok=False, reason="unknown", path=[nid],
+                              blocked_at=nid, blocked_state=self._nodes[nid].state)
+        b = blocker
+        return WhyVerdict(
+            ok=False, reason=f"{b.state.value}:{b.id}",
+            path=[n.id for n in best_path], blocked_at=b.id, blocked_state=b.state,
+        )
 
     def why_should_this_run(self, nid: str) -> bool:
         """The heartbeat question. Asked of every component, every tick."""
         return self.verdict(nid).ok
 
     def contradictions(self) -> list:
-        """ALIVE nodes with a DEAD ancestor — beliefs held without warrant."""
+        """ALIVE nodes whose warrant is destroyed but still asserted:
+        no fully-living path AND at least one DEAD ancestor. A node
+        kept alive by another parent's lineage is NOT a contradiction
+        (it has living warrant); a node blocked only by UNKNOWN
+        (doubtful) ancestors is questionable, not contradictory. A tree
+        reduces to the v0.2 rule exactly: ALIVE with a DEAD ancestor."""
         out = []
         for n in self._nodes.values():
-            if n.state is WhyState.ALIVE and any(
-                a.state is WhyState.DEAD for a in self.chain(n.id)[1:]
-            ):
+            if n.state is not WhyState.ALIVE:
+                continue
+            anc = self._ancestors_ids(n.id)
+            if not anc:
+                continue  # a living root has living warrant (itself)
+            if any(self._nodes[a].state is WhyState.DEAD for a in anc) \
+                    and not self._has_living_path(n.id):
                 out.append(n)
         return out
 
@@ -456,7 +651,9 @@ class WhyTree:
         return tuple(self._necrology)
 
     def genesis(self) -> tuple:
-        """Every declaration as born: (id, parent, statement, tick, state, last_beat).
+        """Every declaration as born: (id, parents, statement, tick,
+        state, last_beat). The parents field is a tuple (primary first);
+        legacy single-parent rows load as one-parent tuples.
 
         The first block of the replay basis (audit.py)."""
         return tuple(self._genesis)
@@ -485,7 +682,8 @@ class WhyTree:
             n = self._nodes.pop(i)
             self._children.pop(i, None)
             rows.append({
-                "id": n.id, "parent": n.parent, "statement": n.statement,
+                "id": n.id, "parents": list(n.parents),
+                "parent": n.parent, "statement": n.statement,
                 "born": n.born, "state": n.state.value, "last_beat": n.last_beat,
                 "last_attested_by": n.last_attested_by, "probation": n.probation,
             })
@@ -498,16 +696,19 @@ class WhyTree:
 
     def _attach_row(self, row: dict) -> None:
         """Rehydrate one archived row into the hot tree (restore ceremony)."""
+        parents = tuple(row.get("parents") or ()) or (
+            (row["parent"],) if row.get("parent") else ()
+        )
         node = WhyNode(
-            id=row["id"], parent=row["parent"], statement=row["statement"],
+            id=row["id"], parents=parents, statement=row["statement"],
             state=WhyState(row["state"]), born=row["born"],
             last_beat=row["last_beat"],
             last_attested_by=row.get("last_attested_by", ""),
             probation=row.get("probation", False),
         )
         self._nodes[node.id] = node
-        if node.parent is not None:
-            self._children.setdefault(node.parent, []).append(node.id)
+        for p in node.parents:
+            self._children.setdefault(p, []).append(node.id)
 
     def conservation(self) -> dict:
         """The audit: states must always account for every node ever declared.
@@ -538,7 +739,7 @@ class WhyTree:
         """
         lines = ["why-tree:"]
         for n in sorted(self._nodes.values(), key=lambda x: x.id):
-            depth = len(self.chain(n.id)) - 1
+            depth = max((len(p) for p in self.paths(n.id)), default=1) - 1
             lines.append(f"{'  ' * depth}- {n.statement}  [{n.id}]")
         return "\n".join(lines)
 
@@ -549,12 +750,13 @@ class WhyTree:
         return {
             "attestation_horizon": self.attestation_horizon,
             "now": self.now,
-            "genesis": [list(g) for g in self._genesis],
+            "genesis": [self._genesis_row(g) for g in self._genesis],
             "journal": [list(j) for j in self._journal],
             "archived": {nid: dict(row) for nid, row in self._archived.items()},
             "nodes": [
                 {
-                    "id": n.id, "parent": n.parent, "statement": n.statement,
+                    "id": n.id, "parents": list(n.parents), "parent": n.parent,
+                    "statement": n.statement,
                     "state": n.state.value, "born": n.born, "last_beat": n.last_beat,
                     "last_attested_by": n.last_attested_by, "probation": n.probation,
                 }
@@ -571,23 +773,48 @@ class WhyTree:
             "next": self._next,
         }
 
+    @staticmethod
+    def _genesis_row(g: tuple) -> list:
+        """Serialize a genesis row, normalizing the parents field to a
+        list (DAG) while emitting legacy-compatible single-parent rows
+        for trees: (id, parents_list, statement, born, state, last_beat)."""
+        nid, par, statement, born, state, last_beat = g
+        return [nid, list(par), statement, born, state, last_beat]
+
+    @staticmethod
+    def _normalize_genesis(g) -> tuple:
+        """Accept both v0.4 rows (parents at index 1) and v0.3 rows
+        (a single parent string or None at index 1); always return the
+        v0.4 shape with a parents tuple."""
+        nid, par, statement, born, state, last_beat = g
+        if isinstance(par, str):
+            par = (par,)
+        elif par is None:
+            par = ()
+        else:
+            par = tuple(par)
+        return (nid, par, statement, born, state, last_beat)
+
     @classmethod
     def from_json(cls, data: dict) -> "WhyTree":
         tree = cls(attestation_horizon=data.get("attestation_horizon"))
         tree.now = data.get("now", 0)
-        tree._genesis = [tuple(g) for g in data.get("genesis", [])]
+        tree._genesis = [cls._normalize_genesis(g) for g in data.get("genesis", [])]
         tree._journal = [tuple(j) for j in data.get("journal", [])]
         tree._archived = {nid: dict(row) for nid, row in data.get("archived", {}).items()}
         for nd in data["nodes"]:
+            parents = tuple(nd.get("parents") or ()) or (
+                (nd["parent"],) if nd.get("parent") else ()
+            )
             node = WhyNode(
-                id=nd["id"], parent=nd["parent"], statement=nd["statement"],
+                id=nd["id"], parents=parents, statement=nd["statement"],
                 state=WhyState(nd["state"]), born=nd["born"], last_beat=nd["last_beat"],
                 last_attested_by=nd.get("last_attested_by", ""),
                 probation=nd.get("probation", False),
             )
             tree._nodes[node.id] = node
-            if node.parent is not None:
-                tree._children.setdefault(node.parent, []).append(node.id)
+            for p in node.parents:
+                tree._children.setdefault(p, []).append(node.id)
         for r in data["necrology"]:
             tree._necrology.append(
                 NecroRecord(

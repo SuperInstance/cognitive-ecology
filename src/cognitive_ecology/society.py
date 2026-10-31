@@ -132,24 +132,33 @@ class ExchangeRecord:
 
 
 def _chain_ids(tree, nid: str) -> set:
-    """Ids from ``nid`` up to its root, tolerating cold-storage exits.
+    """Ids from ``nid`` up through ALL its ancestors (the DAG union),
+    tolerating cold-storage exits.
 
     Uses only public surfaces (hot nodes, archived rows) so a broken
     treaty's historical stamps stay verifiable after the beneficiary
-    subtree has been swept to cold storage.
+    subtree has been swept to cold storage. In a DAG a stamp routed
+    onto a multi-parent node maintains every parent's line, so the
+    service check walks every parent edge.
     """
     out: set = set()
-    cur: Optional[str] = nid
+    frontier = [nid]
     seen: set = set()
-    while cur is not None and cur not in seen:
+    while frontier:
+        cur = frontier.pop()
+        if cur in seen:
+            continue
         seen.add(cur)
         out.add(cur)
         if tree.has(cur):
-            cur = tree.node(cur).parent
+            frontier.extend(tree.node(cur).parents)
         elif cur in tree.archived_ids():
-            cur = tree.archived_row(cur).get("parent")
-        else:
-            break  # neither hot nor archived: the walk cannot continue
+            parents = tuple(tree.archived_row(cur).get("parents") or ()) or (
+                (tree.archived_row(cur)["parent"],)
+                if tree.archived_row(cur).get("parent") else ()
+            )
+            frontier.extend(parents)
+        # else: neither hot nor archived — the walk cannot continue
     return out
 
 

@@ -198,7 +198,7 @@ discipline and journals the results).
 | [docs/06_agents_and_providers.md](docs/06_agents_and_providers.md) | LLMs as citizens + caching economics |
 | [docs/07_playbook.md](docs/07_playbook.md) | how to play-test (and what play-testing found) |
 | [docs/08_decision_models.md](docs/08_decision_models.md) | typed-decision synergy + experiment plan |
-| [docs/ADRs/](docs/ADRs/) | 11 architecture decision records (the law, the economics, the proofs, the society) |
+| [docs/ADRs/](docs/ADRs/) | 12 architecture decision records (the law, the economics, the proofs, the society, the DAG) |
 | [docs/tutorials/](docs/tutorials/) | four hands-on tutorials (first world → LLM agents) |
 
 ## FAQ (read this if you read nothing else)
@@ -313,8 +313,12 @@ The v0.4 frontier (from live ideation round 009, see
    + exchange receipt), neglect propagates soft (the beneficiary's own
    reaper); the federation auditor detects forged service and missed
    propagations; delegation chains flow one hop per exchange.
-2. **WHY-DAG** — multi-parent purpose: `PurposeNode(parents)`,
-   topological replay, any-served-parent semantics.
+2. **WHY-DAG** — **SHIPPED (ADR-0012):** `declare(parents=(a, b))`;
+   best-path verdict/justification (a jointly-justified purpose is as
+   strong as its best living basis); path-survivor cascades with a
+   fixpoint (no over-cascade, no under-cascade); stamping serves the
+   whole DAG lineage; the auditor replays DAG bases and catches
+   off-books re-parenting; trees keep bit-for-bit v0.2 semantics.
 3. **OUTCOME-ARBITER** — score the delegated tie-break by realized
    outcomes, not just divergence counts; paid judgment must earn its
    keep.

@@ -77,11 +77,13 @@ class ColdStorage:
     def sweep(self, now: Optional[int] = None) -> list:
         """Archive every eligible top-most DEAD subtree. Returns archived ids."""
         t = self.tree.now if now is None else now
-        # a node whose PARENT is also eligible is archived with the parent
+        # a node whose PARENT is also eligible is archived with the
+        # parent — in a DAG, with ANY eligible parent
         roots = [
             n.id for n in self.tree.nodes()
             if self.eligible(n.id, t)
-            and not (n.parent is not None and self.eligible(n.parent, t))
+            and not any(p in self.tree._nodes and self.eligible(p, t)
+                        for p in n.parents)
         ]
         archived = []
         for nid in sorted(roots):  # deterministic
@@ -106,7 +108,8 @@ class ColdStorage:
             raise ValueError("restoration requires a reason (the ceremony)")
         t = self.tree.now if tick is None else tick
         # restore the whole cold subtree: nid plus every archived node
-        # whose parent chain leads back to it (or it would orphan the cold)
+        # whose parent chain leads back to it (or it would orphan the
+        # cold) — in a DAG, through ANY parent edge
         restored = {nid}
         row = self.tree._archived.pop(nid)
         row.pop("archived_at", None)
@@ -115,8 +118,12 @@ class ColdStorage:
         while grew:
             grew = False
             for did in list(self.tree._archived):
-                if self.tree._archived[did].get("parent") in restored:
-                    drow = self.tree._archived.pop(did)
+                drow = self.tree._archived[did]
+                parents = tuple(drow.get("parents") or ()) or (
+                    (drow["parent"],) if drow.get("parent") else ()
+                )
+                if any(p in restored for p in parents):
+                    self.tree._archived.pop(did)
                     drow.pop("archived_at", None)
                     self.tree._attach_row(drow)
                     restored.add(did)

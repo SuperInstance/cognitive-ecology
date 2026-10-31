@@ -446,3 +446,44 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   is total, not heuristic). Pinned by a focused regression test.
 - 203 tests green; example 08 in the README table; ADR-0011's replay
   semantics note updated.
+
+### Round 13 — the WHY DAG: purpose with several parents (ADR-0012)
+
+- **Best-path semantics (OR)**: a purpose declared with
+  `parents=(a, b)` runs while ANY path to a root is fully ALIVE, and
+  its justification is the strongest path's score. The round-009
+  pinning test is green verbatim: kill A, C survives on B; kill B too,
+  C dies (questioned, never deleted). Freshness follows the same rule
+  — served through either parent, fresh through that parent — and
+  probation caps apply per path, so a paroled lineage only drags down
+  the paths that use it.
+- **Cascade by surviving path, with a fixpoint.** No over-cascade: a
+  kill questions only descendants with no surviving fully-alive path
+  (a surviving parent's lineage shields the child). No under-cascade:
+  cross-linked topologies — where a node's last living path runs
+  through a *descendant* that cascades later in the same sweep — are
+  settled by re-checking survivors until a full pass cascades nothing.
+  The revive cascade mirrors it: an UNKNOWN descendant returns iff its
+  ancestors on some path are all ALIVE.
+- **Contradictions now require destroyed warrant**: ALIVE, no
+  fully-living path, AND a DEAD ancestor. Doubt (UNKNOWN ancestors)
+  is questionable, not contradictory; a living path through another
+  parent is warrant, not dissonance. Trees reduce to the v0.2 rule
+  exactly.
+- **The whole v0.3 suite passes unchanged** — 203 pre-existing tests
+  green without touching a line, including the tree-cascade-order
+  pin (BFS, bit-for-bit) and the 2000-tick soak. The genesis row
+  grew a parents tuple (v0.3 rows normalize on load); the auditor
+  replays DAG bases and catches off-books re-parenting; cold storage
+  sweeps and restores DAG subtrees through any parent edge; treaties
+  may delegate multi-parent purposes (the service check walks every
+  parent edge).
+- **Found while testing**: my first revive-cascade rule ("a dead
+  parent anywhere blocks the cascade-revive") was too conservative —
+  under OR semantics a resurrected parent DOES restore the child's
+  warrant (the mirror of the kill rule the pinning test demands).
+  The correct rule: would the node have a fully-living path if it
+  were ALIVE? Plus a fixpoint, because DAG parents can revive in the
+  wrong order for a single pass.
+- 220 tests green (17 new); ADR-0012 written; OQ #1 CLOSED with an
+  implementation, not an opinion.

@@ -3,10 +3,15 @@
 The honest frontier. Each item is a live research question for this
 kernel, ordered roughly by how soon it blocks somebody.
 
-1. **Multi-parent WHY (DAG).** When two purposes jointly justify a
-   behavior, verdict semantics need a policy: any-alive-parent?
-   majority? weighted by justification? The tree was chosen for audit
-   clarity; the first real shared-purpose organism will force this.
+1. ~~**Multi-parent WHY (DAG).**~~ **CLOSED (v0.4, ADR-0012):**
+   purposes may declare several parents; verdict and justification use
+   best-path (OR) semantics — a jointly-justified purpose is as strong
+   as its best living basis; kills cascade only descendants with no
+   surviving path (fixpoint, no over/under-cascade); contradictions
+   require destroyed warrant, not doubt; the conservation auditor
+   replays DAG bases and catches off-books re-parenting. Open
+   remainder: weighted parents and majority semantics stay unexplored
+   until a play-test demands them.
 
 2. **Attention factor estimation.** Novelty is currently "fraction of
    watched nodes seen recently" and expected_value is a track record.

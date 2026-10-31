@@ -189,10 +189,11 @@ class Runtime:
     # assembly
     # ------------------------------------------------------------------
     def declare_why(self, statement: str, parent: Optional[str] = None,
-                    tick: Optional[int] = None, node_id: Optional[str] = None):
+                    tick: Optional[int] = None, node_id: Optional[str] = None,
+                    parents: Optional[list] = None):
         return self.why.declare(
             statement, parent=parent, tick=self.tick_no if tick is None else tick,
-            node_id=node_id,
+            node_id=node_id, parents=parents,
         )
 
     def register(self, comp) -> None:

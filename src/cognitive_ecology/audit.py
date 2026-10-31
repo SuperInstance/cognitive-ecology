@@ -98,12 +98,21 @@ class ConservationAuditor:
         """
         problems: list = []
         nodes: dict = {}
-        for (nid, parent, statement, born, state, last_beat) in genesis:
+        for g in genesis:
+            # v0.4 genesis rows carry a parents TUPLE at index 1 (DAG);
+            # v0.3 rows carry a single parent string or None — normalize
+            nid, par, statement, born, state, last_beat = g
+            if isinstance(par, str):
+                par = (par,)
+            elif par is None:
+                par = ()
+            else:
+                par = tuple(par)
             if nid in nodes:
                 problems.append(("genesis_unique", f"duplicate genesis id {nid}"))
                 continue
             nodes[nid] = {
-                "id": nid, "parent": parent, "statement": statement,
+                "id": nid, "parents": par, "statement": statement,
                 "born": born, "state": WhyState(state),
                 "last_beat": last_beat, "last_attested_by": "", "probation": False,
             }
@@ -190,14 +199,14 @@ class ConservationAuditor:
             if ids is not None and n.id not in ids:
                 continue
             rows.append((
-                n.id, n.parent, n.statement, n.born, n.state.value,
+                n.id, n.parents, n.statement, n.born, n.state.value,
                 n.last_beat, n.last_attested_by, n.probation))
         return rows
 
     @staticmethod
     def _replayed_rows(nodes: dict) -> list:
         return [
-            (n["id"], n["parent"], n["statement"], n["born"], n["state"].value,
+            (n["id"], n["parents"], n["statement"], n["born"], n["state"].value,
              n["last_beat"], n["last_attested_by"], n["probation"])
             for _, n in sorted(nodes.items())
         ]
@@ -257,7 +266,10 @@ class ConservationAuditor:
                 if m is None:
                     manifest_ok = False
                     continue
-                if (m["id"], m["parent"], m["statement"], m["born"], m["state"],
+                m_parents = tuple(m.get("parents") or ()) or (
+                    (m["parent"],) if m.get("parent") else ()
+                )
+                if (m["id"], m_parents, m["statement"], m["born"], m["state"],
                         m["last_beat"], m.get("last_attested_by", ""),
                         m.get("probation", False)) != r:
                     manifest_ok = False
