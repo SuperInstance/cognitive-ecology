@@ -42,7 +42,7 @@ from __future__ import annotations
 import json
 import os
 import random
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Callable, Iterable, Optional, Protocol, runtime_checkable
 
 from .attention import AttentionBid, AttentionMarket
@@ -54,7 +54,7 @@ from .graph import WorldGraph
 from .identity import Identity
 from .memory import Memory
 from .scripts import Outcome, ScriptEcology
-from .sleep import SleepCycle
+from .sleep import SleepCycle, SleepStats
 from .tension import TensionField
 from .why import WhyTree
 
@@ -190,6 +190,11 @@ class Runtime:
         self._idle = 0
         self._current_cause: Optional[int] = None
         self._last_audit_ok: Optional[bool] = None
+        # persistence watermark (round 20a): how many events the events
+        # file at ``_persisted_to`` already contains. save() appends only
+        # the delta — the events file is never rewritten whole again.
+        self._persisted = 0
+        self._persisted_to: Optional[str] = None
 
     # ------------------------------------------------------------------
     # assembly
@@ -393,9 +398,19 @@ class Runtime:
     def save(self, path: str) -> None:
         """Write the organism's state. Behavior lives in code; state lives here.
 
-        The state file carries its own conservation receipt (ADR-0008):
-        genesis + necrology + attestation journal replay to exactly this
-        state, or the save refuses to vouch for it.
+        Trust at the door (round 20a — the wave-1 backend persona's top
+        one; before this, a torn write destroyed the only checkpoint and
+        load() never verified anything):
+
+        * ATOMIC — state.json is written whole to a temp file and
+          os.replace()d into place. A crash mid-write leaves the previous
+          checkpoint untouched; a torn state.json cannot come from us.
+        * APPEND-MODE EVENTS — events.jsonl is never rewritten whole;
+          each save appends only the events since the last one. The state
+          records the watermark and the event chain head, so load() can
+          prove the file was never edited, truncated, or spliced.
+        * SELF-VOUCHING — the state carries its conservation receipt
+          (ADR-0008); load() re-verifies it rather than trusting it.
         """
         receipt = ConservationAuditor().verify(self.why)
         os.makedirs(path, exist_ok=True)
@@ -407,6 +422,10 @@ class Runtime:
             "top_k": self.top_k,
             "attestation_horizon": self.why.attestation_horizon,
             "idle": self._idle,
+            "idle_window": self.sleeper.idle_window,
+            "sleeper": asdict(self.sleeper.stats),
+            "events_watermark": len(self.bus),
+            "event_chain_head": self.bus.chain_head,
             "conservation_receipt": {
                 "ok": receipt.ok,
                 "live_digest": receipt.live_digest,
@@ -427,24 +446,89 @@ class Runtime:
             "arbiter_scorecard": self.executive.scorecard.to_json()
             if self.executive.scorecard is not None else None,
         }
-        with open(os.path.join(path, "state.json"), "w", encoding="utf-8") as f:
-            json.dump(state, f, indent=1, sort_keys=True)
-        with open(os.path.join(path, "events.jsonl"), "w", encoding="utf-8") as f:
-            f.write(self.bus.to_jsonl())
+        tmp = os.path.join(path, "state.json.tmp")
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(state, f, indent=1, sort_keys=True)
+        except BaseException:
+            os.unlink(tmp)  # never leave a torn temp behind
+            raise
+        os.replace(tmp, os.path.join(path, "state.json"))
+
+        # events: append only the delta since the last save to THIS path.
+        # A first save, or a save to a different path, writes the whole
+        # log once — and never again on subsequent saves to that path.
+        ev_path = os.path.join(path, "events.jsonl")
+        same_file = (
+            self._persisted_to == os.path.abspath(ev_path)
+            and self._persisted <= len(self.bus)
+        )
+        if not same_file:
+            with open(ev_path, "w", encoding="utf-8") as f:
+                f.write(self.bus.to_jsonl())
+                if len(self.bus):
+                    f.write("\n")
+            self._persisted = len(self.bus)
+            self._persisted_to = os.path.abspath(ev_path)
+        elif len(self.bus) > self._persisted:
+            new = self.bus.log()[self._persisted:]
+            with open(ev_path, "a", encoding="utf-8") as f:
+                f.write("\n".join(
+                    json.dumps(e.row(), separators=(",", ":")) for e in new
+                ) + "\n")
+            self._persisted = len(self.bus)
 
     @classmethod
     def load(cls, path: str, attach: Callable[["Runtime"], None]) -> "Runtime":
-        """Rebuild the organism from disk.
+        """Rebuild the organism from disk — and refuse what cannot vouch.
 
         ``attach(rt)`` re-registers your components IN CODE (closures are
         code, not data) and calls ``rt.ecology.adopt(script)`` to give each
         code-defined script its saved track record back. See
         examples/04_game_npc for the full pattern.
+
+        The door checks (round 20a) — a save that cannot prove itself
+        never becomes a running organism:
+
+        * state.json must be valid JSON (a torn or corrupt file raises
+          with context, never a stack-trace surprise);
+        * events.jsonl must fold to exactly the chain head recorded at
+          save time and hold exactly the recorded watermark — any edit,
+          drop, splice, or interrupted save is refused by name;
+        * the WHY tree must replay its own basis: the conservation
+          receipt is RECOMPUTED, not trusted (a flipped state inside
+          valid JSON used to boot silently — found by the wave-1
+          backend persona probing with a tampered state).
         """
-        with open(os.path.join(path, "state.json"), encoding="utf-8") as f:
-            state = json.load(f)
+        try:
+            with open(os.path.join(path, "state.json"), encoding="utf-8") as f:
+                state = json.load(f)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"state.json is not valid JSON — truncated or corrupted? ({exc})"
+            ) from exc
         with open(os.path.join(path, "events.jsonl"), encoding="utf-8") as f:
-            events_text = f.read()
+            bus = EventBus.from_jsonl(f.read())
+
+        # door check 1: the event chain + watermark. Saves written before
+        # round 20a carry no head/watermark — they are checked by the
+        # conservation door only (compat: old saves still load).
+        # The watermark is checked first: it is the cheaper check and it
+        # names the interrupted-save window precisely; the chain check
+        # then catches any edit/drop/splice that preserves the count.
+        expected_head = state.get("event_chain_head")
+        expected_mark = state.get("events_watermark")
+        if expected_mark is not None and len(bus) != expected_mark:
+            raise ValueError(
+                f"events.jsonl holds {len(bus)} events; the save recorded "
+                f"{expected_mark} — a save was interrupted, or the file "
+                "was changed after the fact"
+            )
+        if expected_head is not None and bus.chain_head != expected_head:
+            raise ValueError(
+                "events.jsonl fails its chain check at the door: it was "
+                "edited, truncated, or spliced after the save"
+            )
 
         rt = cls(seed=state["seed"], top_k=state["top_k"],
                  attestation_horizon=state.get("attestation_horizon"))
@@ -461,7 +545,10 @@ class Runtime:
         rt.sleeper = SleepCycle(
             rt.ecology, rt.memory, bus=rt.bus,
             rng=random.Random(state["seed"] + 2),
+            idle_window=state.get("idle_window", 5),
         )
+        if state.get("sleeper"):
+            rt.sleeper.stats = SleepStats(**state["sleeper"])
         if state.get("identity"):
             rt.identity = Identity.from_dict(state["identity"])
         if state.get("arbiter_scorecard"):
@@ -470,7 +557,21 @@ class Runtime:
             from .scorecard import ArbiterScorecard
             rt.executive.scorecard = ArbiterScorecard.from_json(
                 state["arbiter_scorecard"])
-        rt.bus = EventBus.from_jsonl(events_text)
+        rt.bus = bus
+
+        # door check 2, the one that matters most: recompute, never trust.
+        # A state.json edited after the save (a flipped WHY state inside
+        # valid JSON) fails its own replay here instead of booting a
+        # silently-wrong organism.
+        door = ConservationAuditor().verify(rt.why)
+        if not door.ok:
+            raise ValueError(
+                "state.json fails its conservation check at the door: "
+                + door.summary()
+            )
+
+        rt._persisted = len(bus)
+        rt._persisted_to = os.path.abspath(os.path.join(path, "events.jsonl"))
         attach(rt)
         return rt
 

@@ -67,10 +67,12 @@ Every load-bearing claim in the docs, with its evidence:
 | 55 | Journal compaction keeps replay equivalence exactly; every compaction is receipted and chain-covered | `tests/test_compaction.py` | ✅ tested |
 | 56 | Fail-safe totality: bid() explosions, junk bids, and malformed arbiter answers are contained, recorded as ERROR events, and never fatal | `tests/test_failsafe.py` (round 17) | ✅ tested |
 | 57 | Docs counts are machine-checked against the tree on every push; the quickstart's code block is executed as a test | `scripts/check_docs.py` in CI; `tests/test_docs_code.py` | ✅ wired |
+| 58 | Saves are atomic; loads verify at the door (event chain head, watermark, recomputed conservation receipt); the events file is append-mode | `tests/test_persistence_trust.py` (round 20a) | ✅ tested |
+| 59 | An adopted script keeps its saved biography — born=0 survives load; sleeper stats + idle_window persist | `::test_born_zero_survives_load`, `::test_sleeper_stats_and_idle_window_survive_save_load` | ✅ tested |
 
-**Test count:** 258 as of round 18 — **177 from the kernel**
-(`src/cognitive_ecology/`, the subject of this audit; 18 of them the
-round-17/18 pins: the fail-safe suite plus the docs-code gate) **+ 81
+**Test count:** 268 as of round 20 — **187 from the kernel**
+(`src/cognitive_ecology/`, the subject of this audit; 28 of them the
+round-17/20 pins: fail-safe, docs-code, and persistence-trust) **+ 81
 from the preserved v0.1 research line**
 (`src/ecology/`, alternative WHY formalism + LLM teacher layer; see
 README "Two development lines"). Both suites run green together;

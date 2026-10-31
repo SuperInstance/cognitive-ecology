@@ -127,7 +127,8 @@ class ScriptEcology:
     # ------------------------------------------------------------------
     # population
     # ------------------------------------------------------------------
-    def _register(self, script: Script, tick: int) -> Script:
+    def _register(self, script: Script, tick: int,
+                  _restamp_born: bool = True) -> Script:
         if not script.name:
             raise ValueError("script needs a name")
         if script.name in self._by_name:
@@ -135,7 +136,12 @@ class ScriptEcology:
         if not script.id:
             self._next += 1
             script.id = f"script:{self._next}"
-        if script.born <= 0:
+        if _restamp_born and script.born <= 0:
+            # Only for scripts with no history: an ADOPTED script keeps the
+            # born its saved record carried — including born=0 (round 20a:
+            # a tick-0-born script used to come back re-stamped at the load
+            # tick, resetting its starvation grace window; found by the
+            # game-dev persona as a save-compat bug).
             script.born = tick
         self._scripts[script.id] = script
         self._by_name[script.name] = script
@@ -164,6 +170,9 @@ class ScriptEcology:
                         "parent", "generation", "starve"):
                 if key in saved:
                     setattr(script, key, saved[key])
+            # a rehydrated script keeps its saved biography — do not
+            # restamp born at the load tick (see _register)
+            return self._register(script, tick, _restamp_born=False)
         return self._register(script, tick)
 
     def get(self, name: str) -> Optional[Script]:

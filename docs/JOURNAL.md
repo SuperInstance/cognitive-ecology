@@ -778,3 +778,41 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
   read model, which is why every later need arrives as a bolted-on
   feature. Round 21 is that read model, built on the exact-values
   discipline above.
+
+### Round 20 — persistence trustworthiness, part one: the door (20a)
+
+- **Every Priya probe, closed.** `save()` is atomic (temp + os.replace;
+  a crash mid-write leaves the previous checkpoint byte-intact, no torn
+  temp behind — pinned by a test that explodes json.dump mid-write).
+  `events.jsonl` is append-mode: each save appends only the delta, so
+  the file is never rewritten whole again (the 94 ms autosave hitch at
+  19k events is gone; the first save's bytes are a byte-identical
+  prefix forever after — pinned).
+- **The bus grew a chain** (`EventBus.chain_head`): a fold of every
+  event row in seq order, maintained on emit (one sha256 per event,
+  ~19/tick) and rebuilt on from_jsonl. Zero bytes added to any event —
+  the chain lives on the bus, not in the rows; the MIDI-size budget is
+  untouched. save() records the head; load() refuses a file that folds
+  to anything else — edits, drops, splices, and the interrupted-save
+  window (events appended, state.json not yet replaced) are all caught
+  by name. The watermark check runs first (cheaper, names the window);
+  the chain check catches count-preserving edits.
+- **The conservation receipt is recomputed at the door, never
+  trusted** — the tampered-state probe that used to boot silently now
+  raises with the failing check. Pre-20a saves still load (their states
+  carry no head/watermark; the conservation door covers them) — compat
+  by absence, not by exception.
+- **Smaller bites landed with it**: sleeper stats + idle_window now
+  persist (the researcher persona's dropped dial); an adopted script
+  keeps its saved born (the tick-0-born save-compat bug — `_register`
+  no longer re-stamps adopted biographies); load() passes the saved
+  idle_window into the sleeper instead of silently defaulting it.
+- **The attach() rite of passage is now documented in code**: the
+  round's tests carry the guarded-attach workaround (has()-checks
+  before declare/add) with a note that the real fix — idempotent
+  `ensure_*` + a migration page — is round 23.
+- **Part two remains (20b)**: bounded retention via snapshot+delta
+  (the 015 verdict) — the events file still grows forever; that is the
+  next round, along with rotating checkpoints for hosts.
+- 268 tests (258 + 10); truth gate rippled 258 → 268 through five doc
+  claims exactly as designed.

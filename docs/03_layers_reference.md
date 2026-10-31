@@ -37,6 +37,15 @@ the broken component starves on its own economics. A failed action's
 `Outcome.note` reaches the log as an `ERROR` event, so on-call can see
 *why*, not just *that*. The body survives its organs.
 
+**Persistence (round 20a):** `save()` is atomic (temp + rename — a
+torn write cannot come from us) and append-mode for events (each save
+appends only the delta; the file is never rewritten whole). The state
+records an event chain head and a watermark; `load()` verifies at the
+door — corrupt JSON, a tampered event log (any edit changes the fold),
+an interrupted save (watermark mismatch), or an edited WHY state (the
+conservation receipt is recomputed, never trusted) all raise by name
+instead of booting a silently-wrong organism.
+
 **Gotchas:** `run()` is not resumed automatically across processes —
 `save()`/`load()` is the persistence path; `attach()` must re-register
 components in code and call `ecology.adopt()` for script stats.

@@ -18,6 +18,19 @@ anything, patches for fixes).
   (`tests/test_docs_code.py`), so a doc can never rot into a crash
   again.
 
+- **Persistence trust at the door** (round 20a, the wave-1 backend
+  persona's top one): `state.json` is written atomically (temp+rename);
+  `events.jsonl` is append-mode (each save appends only the delta — no
+  more whole-file rewrites and autosave hitches); the state records an
+  event chain head + watermark, and `load()` refuses at the door —
+  corrupt JSON, tampered events (any edit changes the fold), an
+  interrupted save (watermark mismatch), or an edited WHY state (the
+  conservation receipt is recomputed, never trusted) all raise by name
+  instead of booting a silently-wrong organism. Sleeper stats and
+  idle_window now persist; an adopted script keeps its saved born
+  (tick-0-born scripts no longer re-stamp at the load tick — the
+  game-dev persona's save-compat bug). 10 tests.
+
 ### Fixed
 - **Fail-safe totality** (round 17, found by the wave-1 red team — six
   zero-shot engineers play-tested the repo as real users):

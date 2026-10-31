@@ -33,6 +33,8 @@ from dataclasses import dataclass, replace
 from enum import IntEnum
 from typing import Callable, Iterable, Optional, Union
 
+from .util import stable_hash
+
 
 class EventKind(IntEnum):
     NOTE_ON = 1    # an action fired
@@ -83,6 +85,18 @@ class EventBus:
         self._log: list[Event] = []
         self._subs: list = []
         self._seq = 0
+        # Tamper-evidence for the WHOLE log (round 20a): a fold of every
+        # event row in seq order, maintained incrementally on emit and
+        # rebuilt on from_jsonl. One sha256 per event (~19/tick) and zero
+        # bytes added to any event — the chain lives on the bus, not in
+        # the rows. save() records the head; load() refuses a file that
+        # folds to anything else (edits, drops, splices — all caught).
+        self.chain_head: str = "genesis"
+
+    @staticmethod
+    def _fold(head: str, ev: "Event") -> str:
+        row = json.dumps(ev.row(), separators=(",", ":"))
+        return stable_hash(f"{head}:{row}")
 
     # -- emission -------------------------------------------------------
     @property
@@ -104,6 +118,7 @@ class EventBus:
             payload=tuple(payload), cause=cause, seq=self._seq,
         )
         self._log.append(ev)
+        self.chain_head = self._fold(self.chain_head, ev)
         # Subscribers are best-effort: a broken listener must never
         # stop the organism's heartbeat. Failures are swallowed by design.
         for fn, kinds in self._subs:
@@ -150,6 +165,7 @@ class EventBus:
                 continue
             ev = Event.from_row(json.loads(line))
             bus._log.append(ev)
+            bus.chain_head = bus._fold(bus.chain_head, ev)
             if ev.seq > bus._seq:
                 bus._seq = ev.seq
         return bus
