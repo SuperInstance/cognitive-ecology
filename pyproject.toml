@@ -28,7 +28,12 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7"]
+# Kernel (cognitive_ecology) is zero-dependency. The v0.1 teacher line
+# (ecology.llm) makes live HTTP calls; its extra is folded into dev so the
+# full suite runs in CI. Production installs that need live providers:
+#   pip install "cognitive-ecology[llm]"
+dev = ["pytest>=7", "httpx>=0.24"]
+llm = ["httpx>=0.24"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
