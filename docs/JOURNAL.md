@@ -319,3 +319,18 @@ learned, and what failed, in order, with the receipts. UTC timestamps.*
   opened #13 (journal compaction). The v0.4 frontier is society-basis
   federation, WHY-DAG, outcome-weighted arbitration — proposed by the
   models that now live inside the kernel's own market.
+
+### Postmortem: the red CI streak nobody watched
+
+- v0.3.0 initially shipped with CI red on nine consecutive commits: the
+  round-2 CI edit injected experiment steps with the *run-line* indent
+  (8 spaces) instead of the *step* indent (6 spaces) — invalid YAML, so
+  every run after `f4ca95c` died before executing a single job, and the
+  failure was only noticed at release time. A second, real bug hid
+  behind it: the soak smoke at 1500 ticks could not engage archival
+  (killed purposes never reached min_age), which the parse failure had
+  been masking.
+- **Rules adopted:** (1) check CI after *every* push — "pushed" is not
+  "green"; (2) YAML edits go through a parser check in the same command
+  that writes them; (3) release tags point only at commits whose CI is
+  green. The v0.3.0 tag now sits on the verified-green `a7789e3` line.
