@@ -1057,3 +1057,13 @@ holds, the integration layer is thin. The wave-1 ledger, ranked:
   events.jsonl was REFUSED at the door by name; compaction at tick
   200 + replay to 300 was bit-identical to the un-compacted twin.
 - 332 tests (330 + 2); the recipe fix rippled through the truth gate.
+- **The wave is now a repo tool.** `scripts/playtest_wave2.py` — the
+  same probes, genericized (cold clone path + venv python + runs dir
+  as args), 15 checks, exit code = the wave's verdict. Re-run
+  verbatim against the fixed clone: **all LANDED**, including the
+  recipe serving live (B2/B3: startup completes, /ask ingests, /state
+  answers from the read model), the SIGKILL checkpoint loading at
+  tick 387, tampered events refused, and compaction keeping lives and
+  books identical. Wave-2's job is done: the fixes landed as
+  experienced, and the one thing that had never been run was found
+  dead and revived.

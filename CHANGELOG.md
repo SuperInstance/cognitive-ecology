@@ -85,6 +85,17 @@ anything, patches for fixes).
   (pinned by test), and the orchestrator creates no second WHY — the
   hint-variant boundary is now documented as starvation economics, not
   signature law.
+- **Wave-2 executed; the play-test harness is a repo tool** (round
+  25): `scripts/playtest_wave2.py` runs five personas' checklists
+  against a cold clone (fresh venv, editable install, live uvicorn
+  server, SIGKILL, tampering) — 15 checks, all LANDED after one real
+  find: the docs/10 FastAPI recipe shipped un-runnable (a blocking
+  driver inside an asyncio task froze the event loop at startup).
+  Recipe 4 rewritten as the async-native tick loop; the anti-pattern
+  named in the guide; the recipe now executed live in CI
+  (`tests/test_host_recipes.py`, httpx ASGI transport with explicit
+  lifespan); fastapi joined dev extras. A recipe that has not run is
+  a rumor, not a recipe.
 - 17 new tests (`tests/test_marketlog.py`); 16 in round 22
   (`tests/test_drivers.py`, `tests/test_example04_asks.py`); 18 in
   round 23 (`tests/test_safe_seam.py`); 6 in round 24 (tail honesty,
